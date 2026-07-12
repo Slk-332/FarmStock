@@ -1,14 +1,16 @@
 const { Pool } = require('pg')
 require('dotenv').config()
 
+const connectionString = process.env.DATABASE_URL || process.env.DIRECT_URL
+
 const useSSL =
   process.env.DB_SSL === 'true' ||
   process.env.NODE_ENV === 'production' ||
-  process.env.DATABASE_URL?.includes('supabase') ||
+  connectionString?.includes('supabase') ||
   process.env.DB_HOST?.includes('supabase')
 
-const dbConfig = process.env.DATABASE_URL ? {
-  connectionString: process.env.DATABASE_URL,
+const dbConfig = connectionString ? {
+  connectionString,
 } : {
   host:     process.env.DB_HOST,
   port:     process.env.DB_PORT,

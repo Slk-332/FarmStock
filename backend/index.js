@@ -13,7 +13,7 @@ app.use(express.json())
 
 app.get('/api/health', async (req, res) => {
   const missingEnv = []
-  if (!process.env.DATABASE_URL) {
+  if (!process.env.DATABASE_URL && !process.env.DIRECT_URL) {
     for (const key of ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD']) {
       if (!process.env[key]) missingEnv.push(key)
     }
@@ -25,6 +25,7 @@ app.get('/api/health', async (req, res) => {
     res.json({
       ok: true,
       database: 'connected',
+      databaseEnv: process.env.DATABASE_URL ? 'DATABASE_URL' : process.env.DIRECT_URL ? 'DIRECT_URL' : 'DB_*',
       missingEnv,
     })
   } catch (err) {
@@ -32,6 +33,7 @@ app.get('/api/health', async (req, res) => {
     res.status(500).json({
       ok: false,
       database: 'error',
+      databaseEnv: process.env.DATABASE_URL ? 'DATABASE_URL' : process.env.DIRECT_URL ? 'DIRECT_URL' : 'DB_*',
       missingEnv,
       error: err.code || err.message,
     })
