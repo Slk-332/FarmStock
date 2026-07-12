@@ -3,7 +3,7 @@ const cors    = require('cors')
 require('dotenv').config()
 
 const app = express()
-const pool = require('./src/database')
+const { pool, getDatabaseInfo } = require('./src/database')
 
 app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
@@ -25,7 +25,7 @@ app.get('/api/health', async (req, res) => {
     res.json({
       ok: true,
       database: 'connected',
-      databaseEnv: process.env.DATABASE_URL ? 'DATABASE_URL' : process.env.DIRECT_URL ? 'DIRECT_URL' : 'DB_*',
+      databaseInfo: getDatabaseInfo(),
       missingEnv,
     })
   } catch (err) {
@@ -33,7 +33,7 @@ app.get('/api/health', async (req, res) => {
     res.status(500).json({
       ok: false,
       database: 'error',
-      databaseEnv: process.env.DATABASE_URL ? 'DATABASE_URL' : process.env.DIRECT_URL ? 'DIRECT_URL' : 'DB_*',
+      databaseInfo: getDatabaseInfo(),
       missingEnv,
       error: err.code || err.message,
     })

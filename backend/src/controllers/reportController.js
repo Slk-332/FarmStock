@@ -1,4 +1,4 @@
-const pool = require('../database')
+const { pool } = require('../database')
 
 // สรุปภาพรวม Dashboard Report
 const getSummary = async (req, res) => {

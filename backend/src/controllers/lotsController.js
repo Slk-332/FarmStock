@@ -1,4 +1,4 @@
-const pool = require('../database')
+const { pool } = require('../database')
 
 const getLots = async (req, res) => {
   try {
