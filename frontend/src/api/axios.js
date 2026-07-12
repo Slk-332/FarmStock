@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: import.meta.env.VITE_API_URL || 'https://farmstock-68dt.onrender.com/api',
 })
 
 // แนบ token ทุก request อัตโนมัติ
