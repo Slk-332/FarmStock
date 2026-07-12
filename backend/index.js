@@ -5,8 +5,20 @@ require('dotenv').config()
 const app = express()
 const { pool, getDatabaseInfo } = require('./src/database')
 
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'https://farm-stock-nine.vercel.app',
+  'https://farm-stock-git-main-slk-332s-projects.vercel.app',
+].filter(Boolean)
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true)
+    if (allowedOrigins.includes(origin) || /^https:\/\/farm-stock-[a-z0-9-]+-slk-332s-projects\.vercel\.app$/.test(origin)) {
+      return callback(null, true)
+    }
+    return callback(new Error(`Not allowed by CORS: ${origin}`))
+  },
   credentials: true
 }))
 app.use(express.json())
