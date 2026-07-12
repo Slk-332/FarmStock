@@ -3,12 +3,40 @@ const cors    = require('cors')
 require('dotenv').config()
 
 const app = express()
+const pool = require('./src/database')
 
 app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
   credentials: true
 }))
 app.use(express.json())
+
+app.get('/api/health', async (req, res) => {
+  const missingEnv = []
+  if (!process.env.DATABASE_URL) {
+    for (const key of ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD']) {
+      if (!process.env[key]) missingEnv.push(key)
+    }
+  }
+  if (!process.env.JWT_SECRET) missingEnv.push('JWT_SECRET')
+
+  try {
+    await pool.query('SELECT 1')
+    res.json({
+      ok: true,
+      database: 'connected',
+      missingEnv,
+    })
+  } catch (err) {
+    console.error('Health check failed:', err)
+    res.status(500).json({
+      ok: false,
+      database: 'error',
+      missingEnv,
+      error: err.code || err.message,
+    })
+  }
+})
 
 // Routes
 app.use('/api/auth',    require('./src/routes/auth'))
