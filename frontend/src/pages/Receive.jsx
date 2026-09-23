@@ -127,7 +127,10 @@ export default function Receive() {
 
   return (
     <div className="max-w-5xl mx-auto flex flex-col gap-4">
-      <h1 className="text-base font-semibold text-gray-800">รับของเข้า Stock</h1>
+      <div>
+          <h1 className="text-2xl font-bold text-brand-dark">รับของเข้า Stock</h1>
+          <p className="text-sm text-gray-500 mt-0.5">รับวัตถุดิบตามใบสั่งซื้อเข้าคลัง</p>
+        </div>
 
       {success && (
         <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex flex-wrap items-center gap-3 text-sm text-green-700">
@@ -142,7 +145,7 @@ export default function Receive() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
         {/* หัวใบรับ */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
+        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-4 flex flex-col gap-4">
           <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">ข้อมูลใบรับ</div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
@@ -173,7 +176,7 @@ export default function Receive() {
         </div>
 
         {/* รายการที่รับ */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
+        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-4 flex flex-col gap-3">
           <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">
             รายการที่รับ
             <span className="text-xs font-normal text-gray-400 ml-2">1 หน่วยที่รับ = QR 1 ดวง</span>

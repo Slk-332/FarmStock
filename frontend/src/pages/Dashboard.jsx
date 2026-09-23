@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import api from '../api/axios'
-import { formatPackSize } from '../lib/units'
+import { formatPackSize, trimNumber } from '../lib/units'
 
 const statusConfig = {
   out:   { label: 'Out',      className: 'bg-red-100 text-red-600' },
@@ -19,13 +19,131 @@ const expColor = (days) => {
   return 'text-green-600'
 }
 
+/** สถานะสต๊อกรายวัตถุดิบ — ข้อความเดียวกับหน้า Dashboard */
+const MATERIAL_STATUS = {
+  ok:   { label: 'ปกติ',    className: 'bg-blue-50 text-blue-700' },
+  full: { label: 'เกิน Max', className: 'bg-sky-50 text-sky-700' },
+  low:  { label: 'ใกล้ต่ำ',  className: 'bg-amber-50 text-amber-700' },
+  out:  { label: 'หมด',     className: 'bg-red-50 text-red-600' },
+}
+
+const money = (n) => Number(n || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+/**
+ * ตารางวัตถุดิบแบบชีต T_MaterialStock ใน โปรแกรมเกษตร (Rev.02).xlsx
+ * แสดงทุกวัตถุดิบแม้ยังไม่มีของ (จำนวน 0) — ต่างจากมุมมอง Lot ที่เห็นเฉพาะของที่รับเข้าแล้ว
+ */
+function MaterialTable({ products, loading, search }) {
+  const [group,  setGroup]  = useState('')
+  const [area,   setArea]   = useState('')
+  const [status, setStatus] = useState('')
+
+  const groups = useMemo(() => [...new Set(products.map((p) => p.group_name).filter(Boolean))].sort(), [products])
+  const areas  = useMemo(() => [...new Set(products.map((p) => p.storage_area).filter(Boolean))].sort(), [products])
+
+  const rows = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return products
+      .filter((p) => !q || [p.mat_uid, p.name, p.group_name, p.detail].some((v) => String(v || '').toLowerCase().includes(q)))
+      .filter((p) => !group || p.group_name === group)
+      .filter((p) => !area || p.storage_area === area)
+      .filter((p) => !status || p.stock_status === status)
+      .sort((a, b) => String(a.mat_uid).localeCompare(String(b.mat_uid)))
+  }, [products, search, group, area, status])
+
+  const totalValue = rows.reduce((sum, p) => sum + Number(p.total_value || 0), 0)
+  const lowCount   = rows.filter((p) => p.stock_status === 'low' || p.stock_status === 'out').length
+  const selectCls  = 'h-9 px-3 text-sm rounded-xl border border-gray-200 bg-white text-gray-700'
+  const HEAD = ['รหัสวัตถุดิบ','ชื่อวัตถุดิบ','ประเภท','สูงสุด','ต่ำสุด','จำนวน','หน่วย','จำนวนขนาด','หน่วยขนาด','ราคาต่อหน่วย','ราคารวม','พื้นที่','วันที่บันทึก','สถานะสต๊อก','สถานะการใช้งาน','หมายเหตุ']
+  const RIGHT = new Set(['สูงสุด','ต่ำสุด','จำนวน','จำนวนขนาด','ราคาต่อหน่วย','ราคารวม'])
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          ['จำนวนวัตถุดิบ', `${rows.length} รายการ`],
+          ['มูลค่าคงเหลือรวม', `${money(totalValue)} ฿`],
+          ['ต่ำกว่าขั้นต่ำ / หมด', `${lowCount} รายการ`],
+          ['ประเภท', `${groups.length} ประเภท`],
+        ].map(([label, value]) => (
+          <div key={label} className="bg-white rounded-2xl border border-gray-200/80 shadow-sm px-4 py-3">
+            <div className="text-xs text-gray-500">{label}</div>
+            <div className="text-lg font-bold text-gray-900 mt-0.5">{value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <select value={group} onChange={(e) => setGroup(e.target.value)} className={selectCls}>
+          <option value="">ทุกประเภท</option>
+          {groups.map((g) => <option key={g} value={g}>{g}</option>)}
+        </select>
+        <select value={area} onChange={(e) => setArea(e.target.value)} className={selectCls}>
+          <option value="">ทุกพื้นที่</option>
+          {areas.map((a) => <option key={a} value={a}>พื้นที่ {a}</option>)}
+        </select>
+        <select value={status} onChange={(e) => setStatus(e.target.value)} className={selectCls}>
+          <option value="">ทุกสถานะสต๊อก</option>
+          {Object.entries(MATERIAL_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+        </select>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-x-auto">
+        <table className="w-max min-w-full text-sm border-collapse">
+          <thead>
+            <tr className="bg-brand-bg border-b border-gray-200">
+              {HEAD.map((h) => (
+                <th key={h} className={`px-3 py-3 text-xs font-semibold text-gray-500 whitespace-nowrap ${RIGHT.has(h) ? 'text-right' : 'text-left'}`}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={HEAD.length} className="py-10 text-center text-gray-400">กำลังโหลด...</td></tr>
+            ) : rows.length === 0 ? (
+              <tr><td colSpan={HEAD.length} className="py-10 text-center text-gray-400">ไม่พบวัตถุดิบ</td></tr>
+            ) : rows.map((p) => {
+              const st = MATERIAL_STATUS[p.stock_status] || MATERIAL_STATUS.ok
+              return (
+                <tr key={p.product_id} className="border-b border-gray-100 hover:bg-brand-bg/60">
+                  <td className="px-3 py-2.5 whitespace-nowrap text-gray-500">{p.mat_uid}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap text-gray-900 font-medium">{p.name}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap text-gray-600">{p.group_name || '-'}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap text-right text-gray-500">{p.max_stock}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap text-right text-gray-500">{p.min_stock}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap text-right text-gray-900 font-semibold">{p.total_stock}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap text-gray-600">{p.stock_unit_name || p.stock_unit}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap text-right text-gray-600">{p.pack_size ? trimNumber(p.pack_size) : '-'}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap text-gray-600">{p.pack_unit_name || '-'}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap text-right text-gray-600">{money(p.ave_cost)}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap text-right text-gray-900">{money(p.total_value)}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap text-gray-600">{p.storage_area || '-'}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap text-gray-500">
+                    {p.updated_at ? new Date(p.updated_at).toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-'}
+                  </td>
+                  <td className="px-3 py-2.5 whitespace-nowrap">
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${st.className}`}>{st.label}</span>
+                  </td>
+                  <td className="px-3 py-2.5 whitespace-nowrap text-gray-600">{p.is_active ? 'ใช้งาน' : 'ปิดใช้งาน'}</td>
+                  <td className="px-3 py-2.5 text-gray-500 max-w-60 truncate">{p.detail || '-'}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const [lots,     setLots]     = useState([])
   const [items,    setItems]    = useState([])
+  const [products, setProducts] = useState([])
   const [units,    setUnits]    = useState([])
   const [search,   setSearch]   = useState('')
   const [loading,  setLoading]  = useState(true)
-  const [view,     setView]     = useState('lot')
+  const [view,     setView]     = useState('material')
   const [expanded, setExpanded] = useState(new Set())
   const [editRow,  setEditRow]  = useState(null)
   const [editData, setEditData] = useState({})
@@ -35,11 +153,13 @@ export default function Dashboard() {
   const fetchAll = async () => {
     try {
       setLoading(true)
-      const [lotsRes, itemsRes, unitsRes] = await Promise.all([
+      const [lotsRes, itemsRes, unitsRes, productsRes] = await Promise.all([
         api.get('/lots',  { params: { search } }),
         api.get('/items', { params: { search } }),
         api.get('/units'),
+        api.get('/products'),
       ])
+      setProducts(productsRes.data)
       setLots(lotsRes.data)
       setItems(itemsRes.data)
       setUnits(unitsRes.data)
@@ -122,18 +242,22 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <h1 className="text-base font-semibold text-gray-800">สต๊อกคงเหลือ</h1>
-        <span className="text-xs text-gray-400">{lots.length} Lot · {items.length} ชิ้น</span>
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-bold text-brand-dark">สต๊อกคงเหลือ</h1>
+          <p className="text-sm text-gray-500 mt-0.5">วัตถุดิบทั้งหมดในคลัง แยกดูเป็นรายการ / Lot / รายชิ้นได้</p>
+        </div>
+        <span className="text-xs text-gray-400">{products.length} วัตถุดิบ · {lots.length} Lot · {items.length} ชิ้น</span>
       </div>
 
       {/* Toolbar */}
-      <div className="bg-white rounded-xl border border-gray-200 px-4 py-2.5 flex items-center gap-3">
+      <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm px-4 py-2.5 flex items-center gap-3">
         <input type="text" value={search} onChange={e=>setSearch(e.target.value)}
           placeholder="ค้นหา MatUID, ชื่อสินค้า, Lot, Item ID, วันที่..."
           className="flex-1 text-sm outline-none text-gray-700 placeholder-gray-400" />
         {search && <button onClick={()=>setSearch('')} className="text-gray-400 text-xs">✕</button>}
         <div className="flex border border-gray-200 rounded-lg overflow-hidden ml-2">
+          <button onClick={()=>setView('material')} className={`text-xs px-3 py-1.5 ${view==='material' ? 'bg-blue-50 text-blue-600' : 'text-gray-500'}`}>วัตถุดิบ</button>
           <button onClick={()=>setView('lot')}  className={`text-xs px-3 py-1.5 ${view==='lot'  ? 'bg-blue-50 text-blue-600' : 'text-gray-500'}`}>Lot</button>
           <button onClick={()=>setView('item')} className={`text-xs px-3 py-1.5 ${view==='item' ? 'bg-blue-50 text-blue-600' : 'text-gray-500'}`}>รายชิ้น</button>
         </div>
@@ -141,9 +265,11 @@ export default function Dashboard() {
 
       {error && <div className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-lg">{error}</div>}
 
+      {view === 'material' && <MaterialTable products={products} loading={loading} search={search} />}
+
       {/* ===== View: Lot ===== */}
       {view === 'lot' && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-x-auto">
           <table className="w-max min-w-full border-collapse text-sm">
             <thead>
               <tr className="border-b border-gray-100">
@@ -263,7 +389,7 @@ export default function Dashboard() {
 
       {/* ===== View: รายชิ้น ===== */}
       {view === 'item' && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden">
           {loading ? (
             <div className="text-center py-8 text-gray-400 text-sm">กำลังโหลด...</div>
           ) : lots.length === 0 ? (

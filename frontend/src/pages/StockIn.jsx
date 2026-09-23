@@ -106,12 +106,15 @@ export default function StockIn() {
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-4">
-      <h1 className="text-base font-semibold text-gray-800">ลง Stock</h1>
+      <div>
+          <h1 className="text-2xl font-bold text-brand-dark">ลง Stock</h1>
+          <p className="text-sm text-gray-500 mt-0.5">รับวัตถุดิบเข้าคลังและออก QR ต่อชิ้น</p>
+        </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
         {/* เลือกสินค้า */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
+        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-4 flex flex-col gap-4">
           <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">เลือกผลิตภัณฑ์</div>
           <div>
             <label className={labelClass}>MatUID / ชื่อสินค้า <span className="text-red-400">*</span></label>
@@ -141,7 +144,7 @@ export default function StockIn() {
         </div>
 
         {/* ข้อมูล Lot */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
+        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-4 flex flex-col gap-4">
           <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">ข้อมูล Lot ที่รับเข้า</div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>

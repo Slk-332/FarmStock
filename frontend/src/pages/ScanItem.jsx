@@ -67,7 +67,7 @@ export default function ScanItem() {
 
   if (error) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="bg-white rounded-xl border border-gray-200 p-6 w-full max-w-sm text-center">
+      <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-6 w-full max-w-sm text-center">
         <div className="text-sm font-medium text-gray-700">{error}</div>
         <div className="text-xs text-gray-400 mt-2">{itemId}</div>
       </div>
@@ -88,7 +88,7 @@ export default function ScanItem() {
         </div>
 
         {/* ข้อมูลสินค้า */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-4">
+        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-5 flex flex-col gap-4">
           <div>
             <div className="text-lg font-semibold text-gray-800">{item.product_name}</div>
             <div className="text-xs text-gray-400 mt-0.5">{item.mat_uid}</div>

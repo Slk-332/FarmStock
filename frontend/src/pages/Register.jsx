@@ -123,7 +123,10 @@ export default function Register() {
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-4">
-      <h1 className="text-base font-semibold text-gray-800">ลงทะเบียนผลิตภัณฑ์ใหม่</h1>
+      <div>
+          <h1 className="text-2xl font-bold text-brand-dark">ลงทะเบียนวัตถุดิบ</h1>
+          <p className="text-sm text-gray-500 mt-0.5">เพิ่มวัตถุดิบใหม่ก่อนนำเข้าคลัง</p>
+        </div>
 
       <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-xs text-yellow-700">
         ต้องลงทะเบียนสินค้าก่อน ถึงจะลง Stock ได้
@@ -132,7 +135,7 @@ export default function Register() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
         {/* UID + ประเภท */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
+        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-4 flex flex-col gap-4">
           <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">ข้อมูล UID</div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -180,7 +183,7 @@ export default function Register() {
         </div>
 
         {/* ข้อมูลสินค้า + หน่วย */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
+        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-4 flex flex-col gap-4">
           <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">ข้อมูลผลิตภัณฑ์</div>
           <div>
             <label className={labelClass}>ชื่อผลิตภัณฑ์ <span className="text-red-400">*</span></label>
@@ -237,7 +240,7 @@ export default function Register() {
         </div>
 
         {/* Max/Min */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
+        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-4 flex flex-col gap-4">
           <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">กำหนด Max / Min Stock</div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>

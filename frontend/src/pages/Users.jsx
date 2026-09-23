@@ -72,13 +72,16 @@ export default function Users() {
 
   return (
     <div className="flex flex-col gap-3">
-      <h1 className="text-base font-semibold text-gray-800">User Management</h1>
+      <div>
+          <h1 className="text-2xl font-bold text-brand-dark">ผู้ใช้งาน</h1>
+          <p className="text-sm text-gray-500 mt-0.5">จัดการบัญชีและสิทธิ์การใช้งาน</p>
+        </div>
 
       {error   && <div className="text-sm text-red-500 bg-red-50 px-4 py-3 rounded-xl">{error}</div>}
       {success && <div className="text-sm text-green-600 bg-green-50 px-4 py-3 rounded-xl">{success}</div>}
 
       <div className="flex items-center gap-3">
-        <div className="bg-white rounded-xl border border-gray-200 px-3 py-2 flex items-center gap-2 flex-1">
+        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm px-3 py-2 flex items-center gap-2 flex-1">
           <input type="text" value={search} onChange={e=>setSearch(e.target.value)}
             placeholder="ค้นหา ชื่อ, Username..."
             className="flex-1 text-sm outline-none text-gray-700 placeholder-gray-400" />
@@ -94,7 +97,7 @@ export default function Users() {
         {loading ? (
           <div className="text-center py-8 text-gray-400 text-sm">กำลังโหลด...</div>
         ) : filtered.map(user => (
-          <div key={user.id} className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
+          <div key={user.id} className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm font-medium text-gray-700">{user.full_name}</div>
@@ -125,7 +128,7 @@ export default function Users() {
       </div>
 
       {/* Desktop Table */}
-      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
+      <div className="hidden md:block bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-gray-100">

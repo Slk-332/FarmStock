@@ -397,7 +397,10 @@ export default function Print() {
 
   return (
     <div className="flex flex-col gap-3">
-      <h1 className="text-base font-semibold text-gray-800">Print QR Label</h1>
+      <div>
+          <h1 className="text-2xl font-bold text-brand-dark">ปริ้น QR</h1>
+          <p className="text-sm text-gray-500 mt-0.5">พิมพ์ฉลาก QR ผ่าน Bluetooth, Print Agent หรือเบราว์เซอร์</p>
+        </div>
 
       {/* เลือกวิธีพิมพ์ */}
       <div className="grid grid-cols-2 gap-2">
@@ -415,7 +418,7 @@ export default function Print() {
 
       {/* Bluetooth */}
       {method === 'bluetooth' && (
-        <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex flex-col gap-3">
+        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm px-4 py-3 flex flex-col gap-3">
           {btUnsupported ? (
             <div className="text-xs text-amber-600">{btUnsupported} · ยังใช้ปุ่ม "ปริ้นผ่าน Browser" ได้</div>
           ) : (
@@ -506,7 +509,7 @@ export default function Print() {
 
       {/* สถานะ Print Agent */}
       {method === 'agent' && (
-        <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex flex-col gap-3">
+        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm px-4 py-3 flex flex-col gap-3">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2 flex-wrap">
               <span className={`text-xs px-3 py-1.5 rounded-lg font-medium ${statusConfig.className}`}>
@@ -601,7 +604,7 @@ export default function Print() {
       )}
 
       {/* ขนาด Label */}
-      <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex flex-wrap items-center gap-3">
+      <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm px-4 py-3 flex flex-wrap items-center gap-3">
         <span className="text-xs font-medium text-gray-600">ขนาด Label:</span>
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-400">กว้าง</label>
@@ -628,7 +631,7 @@ export default function Print() {
 
       {/* Preview */}
       {selectedItems.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex flex-wrap items-center gap-4">
+        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm px-4 py-3 flex flex-wrap items-center gap-4">
           <div className="flex flex-col gap-1">
             <span className="text-xs font-medium text-gray-600">ตัวอย่างฉลาก</span>
             <span className="text-xs text-gray-400">ภาพนี้คือข้อมูลชุดเดียวกับที่ส่งเข้าเครื่องพิมพ์</span>
@@ -657,7 +660,7 @@ export default function Print() {
       )}
 
       {/* Toolbar */}
-      <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex flex-wrap items-center gap-3">
+      <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm px-4 py-3 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 flex-1 min-w-40">
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="ค้นหา Lot, Item ID, ชื่อสินค้า..."
@@ -671,7 +674,7 @@ export default function Print() {
       </div>
 
       {/* รายการ */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden">
         {loading ? (
           <div className="text-center py-8 text-gray-400 text-sm">กำลังโหลด...</div>
         ) : Object.entries(groupedByLot).length === 0 ? (
@@ -725,7 +728,7 @@ export default function Print() {
 
       {/* สรุป + ปุ่มพิมพ์ */}
       {selectedItems.length > 0 && (
-        <div className="sticky bottom-16 md:bottom-4 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3 shadow-lg flex-wrap">
+        <div className="sticky bottom-4 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3 shadow-lg flex-wrap">
           <div>
             <div className="text-xs text-blue-500">รวมที่เลือก</div>
             <div className="text-lg font-semibold text-blue-700">{selectedItems.length} แผ่น</div>

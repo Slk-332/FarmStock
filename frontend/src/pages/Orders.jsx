@@ -139,7 +139,10 @@ export default function Orders() {
     <div className="max-w-5xl mx-auto flex flex-col gap-4">
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <h1 className="text-base font-semibold text-gray-800">ใบสั่งซื้อ</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-brand-dark">ใบสั่งซื้อ</h1>
+          <p className="text-sm text-gray-500 mt-0.5">รายการสั่งซื้อวัตถุดิบจากผู้จำหน่าย</p>
+        </div>
         <div className="sm:ml-auto flex flex-wrap gap-2">
           <input value={search} onChange={e => setSearch(e.target.value)}
             className="h-9 px-3 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-blue-400 bg-white basis-full sm:basis-auto min-w-0"
@@ -160,7 +163,7 @@ export default function Orders() {
 
       {/* ===== ฟอร์มสร้างใบสั่งซื้อ ===== */}
       {showForm && form && (
-        <form onSubmit={handleSave} className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
+        <form onSubmit={handleSave} className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-4 flex flex-col gap-4">
           <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">
             ใบสั่งซื้อใหม่
           </div>
@@ -265,7 +268,7 @@ export default function Orders() {
       {/* ===== รายการใบสั่งซื้อ ===== */}
       <div className="flex flex-col gap-2">
         {orders.length === 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 px-4 py-8 text-center text-sm text-gray-400">
+          <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm px-4 py-8 text-center text-sm text-gray-400">
             ยังไม่มีใบสั่งซื้อ
           </div>
         )}
@@ -274,7 +277,7 @@ export default function Orders() {
           const badge = STATUS_LABEL[o.status] || STATUS_LABEL.draft
           const isOpen = detail?.id === o.id
           return (
-            <div key={o.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div key={o.id} className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden">
               <button onClick={() => openDetail(o.id)}
                 className="w-full px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-left hover:bg-gray-50">
                 <span className="text-sm font-medium text-gray-800">{o.order_code}</span>
