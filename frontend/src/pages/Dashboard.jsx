@@ -27,6 +27,20 @@ const MATERIAL_STATUS = {
   out:  { label: 'หมด',     className: 'bg-red-50 text-red-600' },
 }
 
+const PAGE_SIZE = 10
+
+/** เลขหน้าที่จะโชว์: หน้าแรก หน้าสุดท้าย และรอบ ๆ หน้าปัจจุบัน ที่เหลือย่อเป็น … */
+function pageNumbers(current, total) {
+  const pages = new Set([1, total, current - 1, current, current + 1])
+  const list = [...pages].filter((n) => n >= 1 && n <= total).sort((a, b) => a - b)
+  const out = []
+  list.forEach((n, i) => {
+    if (i > 0 && n - list[i - 1] > 1) out.push('…')
+    out.push(n)
+  })
+  return out
+}
+
 const money = (n) => Number(n || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 /**
@@ -37,6 +51,10 @@ function MaterialTable({ products, loading, search }) {
   const [group,  setGroup]  = useState('')
   const [area,   setArea]   = useState('')
   const [status, setStatus] = useState('')
+  // จำเลขหน้าคู่กับคำค้น — พิมพ์คำค้นใหม่แล้วกลับไปหน้า 1 เอง
+  const [pageState, setPageState] = useState({ search, page: 1 })
+  const page    = pageState.search === search ? pageState.page : 1
+  const setPage = (n) => setPageState({ search, page: n })
 
   const groups = useMemo(() => [...new Set(products.map((p) => p.group_name).filter(Boolean))].sort(), [products])
   const areas  = useMemo(() => [...new Set(products.map((p) => p.storage_area).filter(Boolean))].sort(), [products])
@@ -50,6 +68,12 @@ function MaterialTable({ products, loading, search }) {
       .filter((p) => !status || p.stock_status === status)
       .sort((a, b) => String(a.mat_uid).localeCompare(String(b.mat_uid)))
   }, [products, search, group, area, status])
+
+  // เปลี่ยนตัวกรอง/คำค้นแล้วกลับไปหน้าแรก ไม่งั้นอาจค้างอยู่หน้าที่ไม่มีแล้ว
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE))
+  const current   = Math.min(page, pageCount)
+  const pageRows  = rows.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE)
+  const setFilter = (setter) => (e) => { setter(e.target.value); setPage(1) }
 
   const totalValue = rows.reduce((sum, p) => sum + Number(p.total_value || 0), 0)
   const lowCount   = rows.filter((p) => p.stock_status === 'low' || p.stock_status === 'out').length
@@ -74,15 +98,15 @@ function MaterialTable({ products, loading, search }) {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <select value={group} onChange={(e) => setGroup(e.target.value)} className={selectCls}>
+        <select value={group} onChange={setFilter(setGroup)} className={selectCls}>
           <option value="">ทุกประเภท</option>
           {groups.map((g) => <option key={g} value={g}>{g}</option>)}
         </select>
-        <select value={area} onChange={(e) => setArea(e.target.value)} className={selectCls}>
+        <select value={area} onChange={setFilter(setArea)} className={selectCls}>
           <option value="">ทุกพื้นที่</option>
           {areas.map((a) => <option key={a} value={a}>พื้นที่ {a}</option>)}
         </select>
-        <select value={status} onChange={(e) => setStatus(e.target.value)} className={selectCls}>
+        <select value={status} onChange={setFilter(setStatus)} className={selectCls}>
           <option value="">ทุกสถานะสต๊อก</option>
           {Object.entries(MATERIAL_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>
@@ -102,7 +126,7 @@ function MaterialTable({ products, loading, search }) {
               <tr><td colSpan={HEAD.length} className="py-10 text-center text-gray-400">กำลังโหลด...</td></tr>
             ) : rows.length === 0 ? (
               <tr><td colSpan={HEAD.length} className="py-10 text-center text-gray-400">ไม่พบวัตถุดิบ</td></tr>
-            ) : rows.map((p) => {
+            ) : pageRows.map((p) => {
               const st = MATERIAL_STATUS[p.stock_status] || MATERIAL_STATUS.ok
               return (
                 <tr key={p.product_id} className="border-b border-gray-100 hover:bg-brand-bg/60">
@@ -132,6 +156,32 @@ function MaterialTable({ products, loading, search }) {
           </tbody>
         </table>
       </div>
+
+      {rows.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="text-sm text-gray-500">
+            แสดง {(current - 1) * PAGE_SIZE + 1}–{Math.min(current * PAGE_SIZE, rows.length)} จาก {rows.length} รายการ
+          </div>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setPage(current - 1)} disabled={current === 1}
+              className="h-9 px-3 text-sm rounded-xl border border-gray-200 bg-white text-gray-600 disabled:opacity-40">
+              ก่อนหน้า
+            </button>
+            {pageNumbers(current, pageCount).map((n, i) => n === '…' ? (
+              <span key={`gap${i}`} className="px-1 text-gray-400">…</span>
+            ) : (
+              <button key={n} onClick={() => setPage(n)}
+                className={`h-9 min-w-9 px-2 text-sm rounded-xl border ${n === current ? 'bg-blue-500 border-blue-500 text-white font-semibold' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}>
+                {n}
+              </button>
+            ))}
+            <button onClick={() => setPage(current + 1)} disabled={current === pageCount}
+              className="h-9 px-3 text-sm rounded-xl border border-gray-200 bg-white text-gray-600 disabled:opacity-40">
+              ถัดไป
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
