@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import api from '../api/axios'
+import { unitName, formatQty, formatPackSize, matTypeLabel } from '../lib/units'
 
 export default function StockIn() {
   const [products, setProducts] = useState([])
+  const [units,    setUnits]    = useState([])
   const [loading,  setLoading]  = useState(false)
   const [success,  setSuccess]  = useState('')
   const [error,    setError]    = useState('')
@@ -23,10 +25,17 @@ export default function StockIn() {
     } catch {}
   }
 
+  const fetchUnits = async () => {
+    try { setUnits((await api.get('/units')).data) } catch {}
+  }
+
+  // หน่วยนับของสินค้าที่เลือก ใช้แทนคำว่า "ชิ้น" ทั่วทั้งหน้า
+  const stockUnitName = unitName(units, preview?.stock_unit) || 'ชิ้น'
+
+  // ให้ backend ออกเลขให้ — เดิมเดาจากจำนวนแถวที่โหลดมา ซึ่งเลขซ้ำทันทีที่มีใครลบ Lot ทิ้ง
   const genLotNo = async () => {
     try {
-      const res = await api.get('/lots')
-      return `LOT${String(res.data.length + 1).padStart(6, '0')}`
+      return (await api.get('/lots/next-no')).data.lot_no
     } catch {
       return 'LOT000001'
     }
@@ -34,6 +43,7 @@ export default function StockIn() {
 
   useEffect(() => {
     fetchProducts()
+    fetchUnits()
     genLotNo().then(lot => setForm(prev => ({ ...prev, lot_no: lot })))
   }, [])
 
@@ -80,7 +90,7 @@ export default function StockIn() {
         qty_received: Number(form.qty_received),
         cost:         Number(form.cost),
       })
-      setSuccess(`บันทึก ${res.data.items_created} ชิ้น สำเร็จ! ไปปริ้น QR ได้ที่หน้า Print`)
+      setSuccess(`บันทึก ${res.data.items_created} ${stockUnitName} สำเร็จ! ไปปริ้น QR ได้ที่หน้า Print`)
       const newLot = await genLotNo()
       setForm({ product_id:'', lot_no: newLot, qty_received:'', cost:'', mfg_date: today, exp_date:'', supplier:'' })
       setPreview(null); setAveCost(null)
@@ -115,10 +125,17 @@ export default function StockIn() {
           {preview && (
             <div className="bg-gray-50 rounded-xl px-4 py-3 grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs text-gray-500">
               <div>MatUID: <span className="font-medium text-gray-700">{preview.mat_uid}</span></div>
-              <div>Group: <span className="font-medium text-gray-700">{preview.group_name || '-'}</span></div>
-              <div>Max: <span className="font-medium text-gray-700">{preview.max_stock}</span></div>
-              <div>Min: <span className="font-medium text-gray-700">{preview.min_stock}</span></div>
-              <div>Stock ปัจจุบัน: <span className="font-medium text-gray-700">{preview.total_stock || 0} ชิ้น</span></div>
+              <div>หมวดหมู่: <span className="font-medium text-gray-700">{preview.group_name || '-'}</span></div>
+              <div>ประเภท: <span className="font-medium text-gray-700">{matTypeLabel(preview.mat_type)}</span></div>
+              <div>Max: <span className="font-medium text-gray-700">{formatQty(units, preview.max_stock, preview.stock_unit)}</span></div>
+              <div>Min: <span className="font-medium text-gray-700">{formatQty(units, preview.min_stock, preview.stock_unit)}</span></div>
+              <div>Stock ปัจจุบัน: <span className="font-medium text-gray-700">{formatQty(units, preview.total_stock || 0, preview.stock_unit)}</span></div>
+              {formatPackSize(units, preview) && (
+                <div>ขนาดบรรจุ: <span className="font-medium text-gray-700">{formatPackSize(units, preview)}</span></div>
+              )}
+              {preview.storage_area && (
+                <div>พื้นที่จัดเก็บ: <span className="font-medium text-gray-700">{preview.storage_area}</span></div>
+              )}
             </div>
           )}
         </div>
@@ -133,12 +150,12 @@ export default function StockIn() {
               <div className="text-xs text-gray-400 mt-1">ระบบสร้างให้อัตโนมัติ แก้ได้</div>
             </div>
             <div>
-              <label className={labelClass}>จำนวนที่รับเข้า (ชิ้น) <span className="text-red-400">*</span></label>
+              <label className={labelClass}>จำนวนที่รับเข้า ({stockUnitName}) <span className="text-red-400">*</span></label>
               <input type="number" name="qty_received" value={form.qty_received} onChange={handleChange}
                 className={inputClass} placeholder="เช่น 50" min="1" />
             </div>
             <div>
-              <label className={labelClass}>ราคาต้นทุน/ชิ้น <span className="text-red-400">*</span></label>
+              <label className={labelClass}>ราคาต้นทุน/{stockUnitName} <span className="text-red-400">*</span></label>
               <input type="number" name="cost" value={form.cost} onChange={handleChange}
                 className={inputClass} placeholder="เช่น 12.00" step="0.01" />
             </div>
@@ -168,7 +185,7 @@ export default function StockIn() {
         {aveCost !== null && (
           <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex flex-col gap-1">
             <div className="text-xs text-blue-600 font-medium">AveCost ใหม่หลังรับ Lot นี้เข้า</div>
-            <div className="text-lg font-semibold text-blue-700">{aveCost} บาท/ชิ้น</div>
+            <div className="text-lg font-semibold text-blue-700">{aveCost} บาท/{stockUnitName}</div>
             <div className="text-xs text-blue-500">
               (มูลค่าเดิม {((preview?.total_stock||0)*(preview?.ave_cost||0)).toFixed(2)} + Lot ใหม่ {(Number(form.qty_received||0)*Number(form.cost||0)).toFixed(2)})
               ÷ ({preview?.total_stock||0} + {form.qty_received||0})

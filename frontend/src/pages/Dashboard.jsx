@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../api/axios'
+import { formatPackSize } from '../lib/units'
 
 const statusConfig = {
   out:   { label: 'Out',      className: 'bg-red-100 text-red-600' },
@@ -21,6 +22,7 @@ const expColor = (days) => {
 export default function Dashboard() {
   const [lots,     setLots]     = useState([])
   const [items,    setItems]    = useState([])
+  const [units,    setUnits]    = useState([])
   const [search,   setSearch]   = useState('')
   const [loading,  setLoading]  = useState(true)
   const [view,     setView]     = useState('lot')
@@ -33,12 +35,14 @@ export default function Dashboard() {
   const fetchAll = async () => {
     try {
       setLoading(true)
-      const [lotsRes, itemsRes] = await Promise.all([
+      const [lotsRes, itemsRes, unitsRes] = await Promise.all([
         api.get('/lots',  { params: { search } }),
         api.get('/items', { params: { search } }),
+        api.get('/units'),
       ])
       setLots(lotsRes.data)
       setItems(itemsRes.data)
+      setUnits(unitsRes.data)
     } catch {
       setError('โหลดข้อมูลไม่สำเร็จ')
     } finally {
@@ -68,7 +72,6 @@ export default function Dashboard() {
     setEditData({
       name:             lot.product_name,
       detail:           lot.detail || '',
-      weight_per_piece: lot.weight_per_piece || '',
       mfg_date:         lot.mfg_date?.slice(0,10) || '',
       exp_date:         lot.exp_date?.slice(0,10) || '',
       cost:             lot.cost,
@@ -115,7 +118,7 @@ export default function Dashboard() {
 
   const fmt = (d) => d ? new Date(d).toLocaleDateString('th-TH', { day:'2-digit', month:'2-digit', year:'2-digit' }) : '-'
   const inputCls = "border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400"
-  const HEADERS  = ['MatUID','ชื่อสินค้า','Detail','Lot','Status','Max','Min','คงเหลือ','น้ำหนัก','จำนวนชิ้น','Cost','AveCost','TotalCost','วันผลิต','วันหมดอายุ','อายุการใช้งาน','เหลืออีก','จัดการ']
+  const HEADERS  = ['MatUID','ชื่อสินค้า','Detail','Lot','Status','Max','Min','คงเหลือ','ขนาดบรรจุ','จำนวนชิ้น','Cost','AveCost','TotalCost','วันผลิต','วันหมดอายุ','อายุการใช้งาน','เหลืออีก','จัดการ']
 
   return (
     <div className="flex flex-col gap-3">
@@ -198,9 +201,7 @@ export default function Dashboard() {
                         : <span className="text-xs font-medium text-gray-700">{lot.qty_remaining}</span>}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">
-                      {isEditing
-                        ? <input className={`${inputCls} w-20`} value={editData.weight_per_piece} onChange={e=>setEditData({...editData,weight_per_piece:e.target.value})}/>
-                        : <span className="text-xs text-gray-500">{lot.weight_per_piece || '-'}</span>}
+                      <span className="text-xs text-gray-500">{formatPackSize(units, lot) || '-'}</span>
                     </td>
                     <td className="px-3 py-2 text-xs text-gray-500 whitespace-nowrap">{lot.qty_received}</td>
                     <td className="px-3 py-2 whitespace-nowrap">

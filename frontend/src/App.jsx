@@ -4,6 +4,13 @@ import Login        from './pages/Login'
 import Dashboard    from './pages/Dashboard'
 import Register     from './pages/Register'
 import StockIn      from './pages/StockIn'
+import Orders       from './pages/Orders'
+import Receive      from './pages/Receive'
+import Formulas     from './pages/Formulas'
+import Mixing       from './pages/Mixing'
+import Planting     from './pages/Planting'
+import Sales        from './pages/Sales'
+import PlotScan     from './pages/PlotScan'
 import Dispense     from './pages/Dispense'
 import Print        from './pages/Print'
 import Report       from './pages/Report'
@@ -32,9 +39,17 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/scan/:itemId" element={
         <PrivateRoute><ScanItem /></PrivateRoute>} />
+        <Route path="/plot/:token" element={
+        <PrivateRoute><PlotScan /></PrivateRoute>} />
         <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
           <Route index element={<Dashboard />} />
           <Route path="stock-in"  element={<StockIn />} />
+          <Route path="orders"    element={<Orders />} />
+          <Route path="receive"   element={<Receive />} />
+          <Route path="formulas"  element={<Formulas />} />
+          <Route path="mixing"    element={<Mixing />} />
+          <Route path="planting"  element={<Planting />} />
+          <Route path="sales"     element={<Sales />} />
           <Route path="dispense"  element={<Dispense />} />
           <Route path="print"     element={<Print />} />
           <Route path="register"  element={<AdminRoute><Register /></AdminRoute>} />
