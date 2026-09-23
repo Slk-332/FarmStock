@@ -62,6 +62,35 @@ function drawQr(ctx, text, { x, y, maxSize, errorCorrectionLevel = 'M' }) {
 }
 
 /**
+ * ตัดข้อความเป็น 2 บรรทัด โดยตัดที่ขอบคำภาษาไทย (Intl.Segmenter) ไม่ตัดกลางสระ/วรรณยุกต์
+ * คืน { lines, size } ที่ขนาดใหญ่สุดที่ทั้งสองบรรทัดพอดีความกว้าง หรือ null ถ้าตัดไม่ได้
+ */
+function wrapText(ctx, text, maxWidth, applyFont, startSize, minSize) {
+  const segments = typeof Intl !== 'undefined' && Intl.Segmenter
+    ? [...new Intl.Segmenter('th', { granularity: 'word' }).segment(text)].map((s) => s.segment)
+    : Array.from(text)
+  if (segments.length < 2) return null
+
+  for (let size = startSize; size >= minSize; size--) {
+    applyFont(size)
+    // หาจุดตัดที่บรรทัดแรกยาวที่สุดแต่ยังพอดี
+    let first = ''
+    let i = 0
+    while (i < segments.length && ctx.measureText(first + segments[i]).width <= maxWidth) first += segments[i++]
+    if (!first.trim()) continue
+    const second = segments.slice(i).join('').trim()
+    if (!second || ctx.measureText(second).width <= maxWidth) return { lines: second ? [first.trim(), second] : [first.trim()], size }
+  }
+  // ยาวมากจนย่อสุดแล้วยังไม่พอ — บรรทัดสองจะถูกตัดเป็น … ตอนวาด
+  applyFont(minSize)
+  let first = ''
+  let i = 0
+  while (i < segments.length && ctx.measureText(first + segments[i]).width <= maxWidth) first += segments[i++]
+  if (!first.trim()) return null
+  return { lines: [first.trim(), segments.slice(i).join('').trim()], size: minSize }
+}
+
+/**
  * วาดฉลากหนึ่งดวงลง canvas
  * @returns {{ canvas: HTMLCanvasElement, qr: object, widthDots: number, heightDots: number }}
  */
@@ -91,29 +120,58 @@ export function renderLabelCanvas(item, {
 
   const qr = drawQr(ctx, scanUrl, { x: qrX, y: pad, maxSize: qrBox })
 
-  // ขนาดฟอนต์อิงความสูงฉลาก เปลี่ยนขนาด label แล้วสัดส่วนยังเท่าเดิม
-  const nameSize = Math.round(heightDots * 0.125)
-  const uidSize  = Math.round(heightDots * 0.100)
-  const lotSize  = Math.round(heightDots * 0.095)
-  const dateSize = Math.round(heightDots * 0.085)
+  // ตัวหนังสือข้าง QR: ใหญ่ที่สุดเท่าที่พื้นที่ข้าง QR รับได้ (ผู้ใช้ขอให้อ่านง่ายขึ้น)
+  // ขั้นที่ 1 หาขนาดจาก "ความสูง" — แบ่งความสูงให้ทุกบรรทัดตามสัดส่วน RATIO
+  // ขั้นที่ 2 บรรทัดไหนกว้างเกินพื้นที่ ค่อยย่อเฉพาะบรรทัดนั้น (ไม่ตัดเป็น … ถ้ายังย่อได้)
+  const name = String(item.product_name ?? '')
+  const rest = [
+    { text: item.mat_uid,                 ratio: 1.0,  weight: '600' },
+    { text: item.lot_no,                  ratio: 1.0,  weight: '600' },
+    { text: `ผลิต ${fmtDate(item.mfg_date)}`, ratio: 0.92, weight: '400' },
+    { text: `หมด ${fmtDate(item.exp_date)}`,  ratio: 0.92, weight: '400' },
+  ]
+  const NAME_RATIO  = 1.2
+  const LINE_HEIGHT = 1.12
+  const availH = heightDots - pad * 2
+  const unitFor = (nameLines) =>
+    availH / ((NAME_RATIO * nameLines + rest.reduce((s, l) => s + l.ratio, 0)) * LINE_HEIGHT)
+
+  ctx.textBaseline = 'top'
+  const setFont = (weight, size) => { ctx.font = `${weight} ${size}px ${THAI_FONT_STACK}` }
+  const minSize = Math.max(10, Math.round(heightDots * 0.07))
+
+  /** ขนาดใหญ่สุดที่ไม่เกิน target และความกว้างไม่เกิน textW */
+  const fitSize = (text, weight, target) => {
+    let size = Math.max(minSize, Math.floor(target))
+    setFont(weight, size)
+    while (size > minSize && ctx.measureText(text).width > textW) setFont(weight, --size)
+    return size
+  }
+
+  // ชื่อสินค้ายาว ๆ ตัดขึ้นบรรทัดสองดีกว่าย่อจนอ่านไม่ออก
+  let unit = unitFor(1)
+  let nameLines = [name]
+  let nameSize = fitSize(name, '700', unit * NAME_RATIO)
+  setFont('700', nameSize)
+  if (ctx.measureText(name).width > textW || nameSize < unit * NAME_RATIO * 0.8) {
+    const unit2 = unitFor(2)
+    const split = wrapText(ctx, name, textW, (sz) => setFont('700', sz), Math.floor(unit2 * NAME_RATIO), minSize)
+    if (split) { unit = unit2; nameLines = split.lines; nameSize = split.size }
+  }
 
   const lines = [
-    { text: item.product_name,                      size: nameSize, weight: '700' },
-    { text: item.mat_uid,                           size: uidSize,  weight: '400' },
-    { text: `Lot: ${item.lot_no}`,                  size: lotSize,  weight: '400' },
-    { text: `ผลิต ${fmtDate(item.mfg_date)}`,        size: dateSize, weight: '400' },
-    { text: `หมด  ${fmtDate(item.exp_date)}`,        size: dateSize, weight: '400' },
+    ...nameLines.map((text) => ({ text, size: nameSize, weight: '700' })),
+    ...rest.map((l) => ({ text: l.text, weight: l.weight, size: fitSize(l.text, l.weight, unit * l.ratio) })),
   ]
 
-  const totalTextHeight = lines.reduce((sum, l) => sum + Math.round(l.size * 1.25), 0)
+  const totalTextHeight = lines.reduce((sum, l) => sum + Math.round(l.size * LINE_HEIGHT), 0)
   let cursorY = Math.max(pad, Math.round((heightDots - totalTextHeight) / 2))
 
   ctx.fillStyle = '#000'
-  ctx.textBaseline = 'top'
   for (const line of lines) {
-    ctx.font = `${line.weight} ${line.size}px ${THAI_FONT_STACK}`
+    setFont(line.weight, line.size)
     ctx.fillText(fitText(ctx, line.text, textW), pad, cursorY)
-    cursorY += Math.round(line.size * 1.25)
+    cursorY += Math.round(line.size * LINE_HEIGHT)
   }
 
   return { canvas: target, qr, widthDots, heightDots }
