@@ -106,13 +106,16 @@ export default function StockIn() {
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-4">
-      <h1 className="text-base font-semibold text-gray-800">ลง Stock</h1>
+      <div>
+          <h1 className="text-2xl font-bold text-brand-dark">ลง Stock</h1>
+          <p className="text-sm text-gray-500 mt-0.5">รับวัตถุดิบเข้าคลังและออก QR ต่อชิ้น</p>
+        </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
         {/* เลือกสินค้า */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
-          <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">🔍 เลือกผลิตภัณฑ์</div>
+        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-4 flex flex-col gap-4">
+          <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">เลือกผลิตภัณฑ์</div>
           <div>
             <label className={labelClass}>MatUID / ชื่อสินค้า <span className="text-red-400">*</span></label>
             <select name="product_id" value={form.product_id} onChange={handleProductChange} className={inputClass}>
@@ -141,8 +144,8 @@ export default function StockIn() {
         </div>
 
         {/* ข้อมูล Lot */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
-          <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">📦 ข้อมูล Lot ที่รับเข้า</div>
+        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-4 flex flex-col gap-4">
+          <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">ข้อมูล Lot ที่รับเข้า</div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className={labelClass}>Lot No. <span className="text-red-400">*</span></label>
@@ -194,7 +197,7 @@ export default function StockIn() {
         )}
 
         {error   && <div className="text-sm text-red-500 bg-red-50 px-4 py-3 rounded-xl">{error}</div>}
-        {success && <div className="text-sm text-green-600 bg-green-50 px-4 py-3 rounded-xl">✅ {success}</div>}
+        {success && <div className="text-sm text-green-600 bg-green-50 px-4 py-3 rounded-xl">{success}</div>}
 
         <div className="flex flex-col sm:flex-row justify-end gap-3">
           <button type="button"
@@ -204,7 +207,7 @@ export default function StockIn() {
           </button>
           <button type="submit" disabled={loading}
             className="h-10 px-5 text-sm rounded-xl bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50">
-            {loading ? 'กำลังบันทึก...' : '✓ บันทึก + สร้าง Item ID'}
+            {loading ? 'กำลังบันทึก...' : 'บันทึก + สร้าง Item ID'}
           </button>
         </div>
       </form>

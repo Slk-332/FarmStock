@@ -155,8 +155,11 @@ export default function Mixing() {
     <div className="max-w-5xl mx-auto flex flex-col gap-4">
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <h1 className="text-base font-semibold text-gray-800">ใบสั่งผลิต</h1>
-        <div className="sm:ml-auto flex gap-2">
+        <div>
+          <h1 className="text-2xl font-bold text-brand-dark">ใบสั่งผลิต</h1>
+          <p className="text-sm text-gray-500 mt-0.5">สั่งผลิตตามสูตร ระบบตัดวัตถุดิบและคิดต้นทุนให้</p>
+        </div>
+        <div className="sm:ml-auto flex flex-wrap gap-2">
           <select value={status} onChange={e => setStatus(e.target.value)}
             className="h-9 px-3 text-sm rounded-xl border border-gray-200 bg-white text-gray-700">
             <option value="">ทุกสถานะ</option>
@@ -174,7 +177,7 @@ export default function Mixing() {
       {produced && (
         <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex flex-wrap items-center gap-3 text-sm text-green-700">
           <span>
-            ✅ ผลิตเสร็จ — Lot {produced.output_lot_no} · ต้นทุนรวม{' '}
+            ผลิตเสร็จ — Lot {produced.output_lot_no} · ต้นทุนรวม{' '}
             {Number(produced.total_cost).toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
             ({trimNumber(produced.cost_per_unit, 2)} บาท/หน่วย) · สร้าง QR {produced.qr_created} ดวง
           </span>
@@ -187,8 +190,8 @@ export default function Mixing() {
 
       {/* ===== ฟอร์มสั่งผลิต ===== */}
       {form && (
-        <form onSubmit={handleCreate} className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
-          <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">⚗️ ใบสั่งผลิตใหม่</div>
+        <form onSubmit={handleCreate} className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-4 flex flex-col gap-4">
+          <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">ใบสั่งผลิตใหม่</div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
@@ -240,7 +243,7 @@ export default function Mixing() {
             </button>
             <button type="submit" disabled={saving}
               className="h-10 px-5 text-sm rounded-xl bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50">
-              {saving ? 'กำลังบันทึก...' : '✓ สร้างใบสั่งผลิต'}
+              {saving ? 'กำลังบันทึก...' : 'สร้างใบสั่งผลิต'}
             </button>
           </div>
         </form>
@@ -249,7 +252,7 @@ export default function Mixing() {
       {/* ===== รายการใบสั่งผลิต ===== */}
       <div className="flex flex-col gap-2">
         {orders.length === 0 && !form && (
-          <div className="bg-white rounded-xl border border-gray-200 px-4 py-8 text-center text-sm text-gray-400">
+          <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm px-4 py-8 text-center text-sm text-gray-400">
             ยังไม่มีใบสั่งผลิต
           </div>
         )}
@@ -258,7 +261,7 @@ export default function Mixing() {
           const badge = STATUS_LABEL[o.status] || STATUS_LABEL.requested
           const isOpen = detail?.id === o.id
           return (
-            <div key={o.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div key={o.id} className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden">
               <button onClick={() => openDetail(o.id)}
                 className="w-full px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-left hover:bg-gray-50">
                 <span className="text-sm font-medium text-gray-800">{o.mix_no}</span>
@@ -329,7 +332,7 @@ export default function Mixing() {
                           </div>
 
                           {requirement.can_produce ? (
-                            <div className="bg-white rounded-xl border border-gray-200 p-3 flex flex-col sm:flex-row sm:items-end gap-3">
+                            <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-3 flex flex-col sm:flex-row sm:items-end gap-3">
                               <div className="sm:w-56">
                                 <label className={labelClass}>
                                   บรรจุได้กี่{detail.output_stock_unit ? 'หน่วย' : 'หน่วย'}? (= จำนวน QR)
@@ -345,7 +348,7 @@ export default function Mixing() {
                               </div>
                               <button onClick={handleProduce} disabled={producing}
                                 className="h-10 px-5 text-sm rounded-xl bg-green-500 text-white hover:bg-green-600 disabled:opacity-50">
-                                {producing ? 'กำลังผลิต...' : '⚗️ ยืนยันผลิต + หักสต๊อก'}
+                                {producing ? 'กำลังผลิต...' : 'ยืนยันผลิต + หักสต๊อก'}
                               </button>
                             </div>
                           ) : (

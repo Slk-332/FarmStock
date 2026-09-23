@@ -26,6 +26,12 @@ const PrivateRoute = ({ children }) => {
   return children
 }
 
+/** หน้าแรกหลังล็อกอิน: แอดมินเห็น Dashboard (สรุปภาพรวม) ส่วนผู้ใช้ทั่วไปเห็นสต๊อกคงเหลือ */
+const HomeRedirect = () => {
+  const { user } = useAuth()
+  return <Navigate to={user?.role === 'admin' ? '/dashboard' : '/stock'} replace />
+}
+
 const AdminRoute = ({ children }) => {
   const { user, loading } = useAuth()
   if (loading) return null
@@ -42,7 +48,8 @@ export default function App() {
         <Route path="/plot/:token" element={
         <PrivateRoute><PlotScan /></PrivateRoute>} />
         <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
-          <Route index element={<Dashboard />} />
+          <Route index element={<HomeRedirect />} />
+          <Route path="stock"     element={<Dashboard />} />
           <Route path="stock-in"  element={<StockIn />} />
           <Route path="orders"    element={<Orders />} />
           <Route path="receive"   element={<Receive />} />
@@ -53,7 +60,9 @@ export default function App() {
           <Route path="dispense"  element={<Dispense />} />
           <Route path="print"     element={<Print />} />
           <Route path="register"  element={<AdminRoute><Register /></AdminRoute>} />
-          <Route path="report"    element={<AdminRoute><Report /></AdminRoute>} />
+          <Route path="dashboard" element={<AdminRoute><Report /></AdminRoute>} />
+          {/* ลิงก์เก่าที่เคยบุ๊กมาร์กไว้ */}
+          <Route path="report"    element={<Navigate to="/dashboard" replace />} />
           <Route path="users"     element={<AdminRoute><Users /></AdminRoute>} />
         </Route>
       </Routes>

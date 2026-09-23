@@ -213,10 +213,13 @@ export default function Planting() {
     <div className="max-w-5xl mx-auto flex flex-col gap-4">
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <h1 className="text-base font-semibold text-gray-800">แปลงปลูก</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-brand-dark">แปลงปลูก</h1>
+          <p className="text-sm text-gray-500 mt-0.5">โซน แปลง กิจกรรม และผลผลิต</p>
+        </div>
         <div className="sm:ml-auto flex flex-wrap gap-2">
           <input value={filter.search} onChange={e => setFilter({ ...filter, search: e.target.value })}
-            className="h-9 px-3 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-blue-400 bg-white"
+            className="h-9 px-3 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-blue-400 bg-white basis-full sm:basis-auto min-w-0"
             placeholder="ค้นหาแปลง / พืช" />
           <select value={filter.area_id} onChange={e => setFilter({ ...filter, area_id: e.target.value })}
             className="h-9 px-3 text-sm rounded-xl border border-gray-200 bg-white text-gray-700">
@@ -230,7 +233,7 @@ export default function Planting() {
           </select>
           <button onClick={() => setShowAreas(!showAreas)}
             className="h-9 px-4 text-sm rounded-xl border border-gray-200 text-gray-600 hover:bg-white">
-            🗺️ โซน
+            โซน
           </button>
           <button onClick={() => openPlotForm(null)} disabled={areas.length === 0}
             className="h-9 px-4 text-sm rounded-xl bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 whitespace-nowrap">
@@ -240,18 +243,18 @@ export default function Planting() {
       </div>
 
       {error  && <div className="text-sm text-red-500 bg-red-50 px-4 py-3 rounded-xl">{error}</div>}
-      {notice && <div className="text-sm text-green-600 bg-green-50 px-4 py-3 rounded-xl">✅ {notice}</div>}
+      {notice && <div className="text-sm text-green-600 bg-green-50 px-4 py-3 rounded-xl">{notice}</div>}
 
       {areas.length === 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-xs text-yellow-700">
-          ⚠️ ยังไม่มีโซน — กดปุ่ม "🗺️ โซน" เพื่อสร้างโซนก่อน แล้วค่อยแบ่งแปลงในโซนนั้น
+          ยังไม่มีโซน — กดปุ่ม "โซน" เพื่อสร้างโซนก่อน แล้วค่อยแบ่งแปลงในโซนนั้น
         </div>
       )}
 
       {/* ===== จัดการโซน ===== */}
       {showAreas && (
-        <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-          <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">🗺️ โซน</div>
+        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-4 flex flex-col gap-3">
+          <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">โซน</div>
           {areas.map(a => (
             <div key={a.id} className="flex items-center gap-3 text-sm">
               <span className="font-medium text-gray-700">{a.area_code}</span>
@@ -277,9 +280,9 @@ export default function Planting() {
 
       {/* ===== ฟอร์มแปลง ===== */}
       {plotForm && (
-        <form onSubmit={savePlot} className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
+        <form onSubmit={savePlot} className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-4 flex flex-col gap-4">
           <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">
-            {plotForm.id ? '🌱 แก้ไขแปลง' : '🌱 แปลงใหม่'}
+            {plotForm.id ? 'แก้ไขแปลง' : 'แปลงใหม่'}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
@@ -338,7 +341,7 @@ export default function Planting() {
             </button>
             <button type="submit" disabled={saving}
               className="h-10 px-5 text-sm rounded-xl bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50">
-              {saving ? 'กำลังบันทึก...' : '✓ บันทึกแปลง'}
+              {saving ? 'กำลังบันทึก...' : 'บันทึกแปลง'}
             </button>
           </div>
         </form>
@@ -347,7 +350,7 @@ export default function Planting() {
       {/* ===== รายการแปลง ===== */}
       <div className="flex flex-col gap-2">
         {plots.length === 0 && !plotForm && (
-          <div className="bg-white rounded-xl border border-gray-200 px-4 py-8 text-center text-sm text-gray-400">
+          <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm px-4 py-8 text-center text-sm text-gray-400">
             ยังไม่มีแปลง
           </div>
         )}
@@ -357,14 +360,14 @@ export default function Planting() {
           const isOpen = detail?.id === p.id
           const unallocated = Number(p.material_cost) - Number(p.allocated_cost)
           return (
-            <div key={p.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div key={p.id} className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden">
               <button onClick={() => openDetail(p.id)}
                 className="w-full px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-left hover:bg-gray-50">
                 <span className="text-sm font-medium text-gray-800">{p.plot_code}</span>
                 <span className="text-sm text-gray-700">{p.name}</span>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${badge.cls}`}>{badge.text}</span>
                 <span className="text-xs text-gray-400">{p.area_code}</span>
-                {p.crop && <span className="text-xs text-gray-500">🌿 {p.crop}</span>}
+                {p.crop && <span className="text-xs text-gray-500">{p.crop}</span>}
                 {p.size && <span className="text-xs text-gray-400">{trimNumber(p.size)} {p.size_unit_name}</span>}
                 <span className="ml-auto text-xs text-gray-500">
                   ต้นทุนค้าง {unallocated.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿
@@ -400,21 +403,21 @@ export default function Planting() {
                       output_units: '', cost_total: String(detail.unallocated_cost), exp_date: '', note: '',
                     })}
                       className="h-9 px-4 text-xs rounded-xl bg-green-500 text-white hover:bg-green-600">
-                      🌾 บันทึกเก็บเกี่ยว
+                      บันทึกเก็บเกี่ยว
                     </button>
                     <button onClick={showQr}
                       className="h-9 px-4 text-xs rounded-xl border border-gray-200 text-gray-600 hover:bg-white">
-                      📱 QR ของแปลง
+                      QR ของแปลง
                     </button>
                     <button onClick={() => openPlotForm(p)}
                       className="h-9 px-4 text-xs rounded-xl border border-gray-200 text-gray-600 hover:bg-white">
-                      ✏️ แก้ไข
+                      แก้ไข
                     </button>
                   </div>
 
                   {/* QR */}
                   {qrImage && (
-                    <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col items-center gap-2">
+                    <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-4 flex flex-col items-center gap-2">
                       <img src={qrImage.src} alt={`QR ${detail.plot_code}`} className="w-48 h-48" />
                       <div className="text-sm font-medium text-gray-700">{detail.plot_code} · {detail.name}</div>
                       <div className="text-[10px] text-gray-400 break-all text-center">{qrImage.url}</div>
@@ -424,7 +427,7 @@ export default function Planting() {
 
                   {/* ฟอร์มกิจกรรม */}
                   {activity && (
-                    <form onSubmit={submitActivity} className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
+                    <form onSubmit={submitActivity} className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-4 flex flex-col gap-3">
                       <div className="text-xs font-medium text-gray-700">บันทึกกิจกรรม</div>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
@@ -584,7 +587,7 @@ export default function Planting() {
                         </button>
                         <button type="submit" disabled={saving || produceProducts.length === 0}
                           className="h-9 px-4 text-xs rounded-xl bg-green-500 text-white hover:bg-green-600 disabled:opacity-50">
-                          {saving ? 'กำลังบันทึก...' : '🌾 บันทึก + เข้า Stock'}
+                          {saving ? 'กำลังบันทึก...' : 'บันทึก + เข้า Stock'}
                         </button>
                       </div>
                     </form>
@@ -595,7 +598,7 @@ export default function Planting() {
                     <div className="flex flex-col gap-1">
                       <div className="text-xs text-gray-500">ประวัติการดูแล</div>
                       {detail.activities.map(a => (
-                        <div key={a.id} className="bg-white rounded-xl border border-gray-200 px-3 py-2 text-xs">
+                        <div key={a.id} className="bg-white rounded-2xl border border-gray-200/80 shadow-sm px-3 py-2 text-xs">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="text-gray-400">{String(a.activity_date).slice(0, 10)}</span>
                             <span className="font-medium text-gray-700">{a.activity_type}</span>
@@ -628,7 +631,7 @@ export default function Planting() {
                     <div className="flex flex-col gap-1">
                       <div className="text-xs text-gray-500">ประวัติการเก็บเกี่ยว</div>
                       {detail.harvests.map(h => (
-                        <div key={h.id} className="bg-white rounded-xl border border-gray-200 px-3 py-2 text-xs flex flex-wrap items-center gap-2">
+                        <div key={h.id} className="bg-white rounded-2xl border border-gray-200/80 shadow-sm px-3 py-2 text-xs flex flex-wrap items-center gap-2">
                           <span className="text-gray-400">{String(h.harvest_date).slice(0, 10)}</span>
                           <span className="font-medium text-gray-700">{h.product_name}</span>
                           <span className="text-gray-600">{trimNumber(h.qty)} {h.unit_name || h.unit_code}</span>

@@ -133,10 +133,13 @@ export default function Formulas() {
     <div className="max-w-5xl mx-auto flex flex-col gap-4">
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <h1 className="text-base font-semibold text-gray-800">สูตรผสม</h1>
-        <div className="sm:ml-auto flex gap-2">
+        <div>
+          <h1 className="text-2xl font-bold text-brand-dark">สูตรผสม</h1>
+          <p className="text-sm text-gray-500 mt-0.5">สูตรมาตรฐานและปริมาณวัตถุดิบต่อ 1 ชุด</p>
+        </div>
+        <div className="sm:ml-auto flex flex-wrap gap-2">
           <input value={search} onChange={e => setSearch(e.target.value)}
-            className="h-9 px-3 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-blue-400 bg-white"
+            className="h-9 px-3 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-blue-400 bg-white basis-full sm:basis-auto min-w-0"
             placeholder="ค้นหารหัส / ชื่อสูตร / GTF" />
           <button onClick={openCreate}
             className="h-9 px-4 text-sm rounded-xl bg-blue-500 text-white hover:bg-blue-600 whitespace-nowrap">
@@ -149,16 +152,16 @@ export default function Formulas() {
 
       {mixedProducts.length === 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-xs text-yellow-700">
-          ⚠️ ยังไม่มีสินค้าประเภท "ของผสม" — ไปลงทะเบียนสินค้าที่จะได้จากการผสมก่อน
+          ยังไม่มีสินค้าประเภท "ของผสม" — ไปลงทะเบียนสินค้าที่จะได้จากการผสมก่อน
           โดยตั้งประเภทวัตถุดิบเป็น <span className="font-medium">ของผสม (จาก Mixing)</span>
         </div>
       )}
 
       {/* ===== ฟอร์มสูตร ===== */}
       {form && (
-        <form onSubmit={handleSave} className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
+        <form onSubmit={handleSave} className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-4 flex flex-col gap-4">
           <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">
-            {editId ? `📋 แก้ไขสูตร ${form.std_code}` : '📋 สูตรใหม่'}
+            {editId ? `แก้ไขสูตร ${form.std_code}` : 'สูตรใหม่'}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -284,7 +287,7 @@ export default function Formulas() {
             </button>
             <button type="submit" disabled={saving}
               className="h-10 px-5 text-sm rounded-xl bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50">
-              {saving ? 'กำลังบันทึก...' : '✓ บันทึกสูตร'}
+              {saving ? 'กำลังบันทึก...' : 'บันทึกสูตร'}
             </button>
           </div>
         </form>
@@ -293,7 +296,7 @@ export default function Formulas() {
       {/* ===== รายการสูตร ===== */}
       <div className="flex flex-col gap-2">
         {formulas.length === 0 && !form && (
-          <div className="bg-white rounded-xl border border-gray-200 px-4 py-8 text-center text-sm text-gray-400">
+          <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm px-4 py-8 text-center text-sm text-gray-400">
             ยังไม่มีสูตร
           </div>
         )}
@@ -301,7 +304,7 @@ export default function Formulas() {
         {formulas.map(f => {
           const isOpen = detail?.id === f.id
           return (
-            <div key={f.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div key={f.id} className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden">
               <button onClick={() => openDetail(f.id)}
                 className="w-full px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-left hover:bg-gray-50">
                 <span className="text-sm font-medium text-gray-800">{f.std_code}</span>
@@ -355,7 +358,7 @@ export default function Formulas() {
                   <div className="flex flex-wrap gap-2">
                     <button onClick={() => openEdit(f.id)}
                       className="h-9 px-4 text-xs rounded-xl border border-gray-200 text-gray-600 hover:bg-white">
-                      ✏️ แก้ไขสูตร
+                      แก้ไขสูตร
                     </button>
                     <button onClick={() => toggleActive(f)}
                       className="h-9 px-4 text-xs rounded-xl border border-gray-200 text-gray-600 hover:bg-white">

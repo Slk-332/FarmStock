@@ -1,1 +1,33 @@
 @import "tailwindcss";
+
+/*
+ * ธีมสีตามแบบ GTF SYSTEMS (docs/GTF SYSTEMS.pdf)
+ *
+ * ทั้งเว็บเขียนสีหลักเป็น blue-* ไว้หลายร้อยจุด แทนที่จะไล่แก้ทีละไฟล์
+ * จึงเปลี่ยนค่าของ blue ทั้งชุดให้เป็นเขียวแบบในแบบ — ปุ่ม/ลิงก์/ป้ายที่เคยเป็นฟ้าจะเป็นเขียวหมด
+ * ส่วนที่อยากได้ฟ้าจริง ๆ (เช่นป้าย "ข้อมูล") ให้ใช้ sky-* แทน
+ */
+@theme {
+  --font-sans: "Noto Sans Thai", "Leelawadee UI", "Tahoma", ui-sans-serif, system-ui, sans-serif;
+
+  --color-blue-50:  #eef7f2;
+  --color-blue-100: #d9eee3;
+  --color-blue-200: #b5dcc8;
+  --color-blue-300: #86c3a5;
+  --color-blue-400: #57a883;
+  --color-blue-500: #368c66;
+  --color-blue-600: #2a7453;
+  --color-blue-700: #235d44;
+  --color-blue-800: #1e4b38;
+  --color-blue-900: #1a3e2f;
+
+  --color-brand-bg:      #f4f8f6;
+  --color-brand-sidebar: #e6f2ec;
+  --color-brand-active:  #cfe6da;
+  --color-brand-dark:    #1f5a40;
+}
+
+body {
+  background: var(--color-brand-bg);
+  color: #1f2937;
+}
