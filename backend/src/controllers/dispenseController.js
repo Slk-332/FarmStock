@@ -96,9 +96,10 @@ const createDispense = async (req, res) => {
       [item_id, req.user.id, item.cost, remark]
     )
 
-    // อัปเดต item status
+    // อัปเดต item status — ล้างปริมาณคงเหลือด้วย เพราะเบิกแบบนี้คือเอาไปทั้งชิ้น
+    // ถ้าไม่ล้าง ระบบผสมจะยังเห็นว่าชิ้นนี้มีของเหลืออยู่ทั้งที่ถูกเบิกออกไปแล้ว
     await client.query(
-      `UPDATE item SET status='dispensed' WHERE id=$1`, [item_id]
+      `UPDATE item SET status='dispensed', content_remaining=0 WHERE id=$1`, [item_id]
     )
 
     // อัปเดต qty_remaining ของ lot
@@ -148,6 +149,7 @@ const updateDispense = async (req, res) => {
     )
 
     if (dispense.rows.length === 0) {
+      await client.query('ROLLBACK')
       return res.status(404).json({ message: 'ไม่พบรายการ' })
     }
 

@@ -56,10 +56,18 @@ app.get('/api/health', async (req, res) => {
 app.use('/api/auth',    require('./src/routes/auth'))
 app.use('/api/users',   require('./src/routes/users'))
 app.use('/api/groups',  require('./src/routes/groups'))
+app.use('/api/units',   require('./src/routes/units'))
 app.use('/api/products',require('./src/routes/products'))
 app.use('/api/lots',    require('./src/routes/lots'))
 app.use('/api/items',   require('./src/routes/items'))
 app.use('/api/dispense',require('./src/routes/dispense'))
+app.use('/api/orders',  require('./src/routes/orders'))
+app.use('/api/formulas',require('./src/routes/formulas'))
+app.use('/api/mixing',  require('./src/routes/mixing'))
+app.use('/api/planting',require('./src/routes/planting'))
+app.use('/api/sales',   require('./src/routes/sales'))
+app.use('/api/receipts',require('./src/routes/receipts'))
+app.use('/api/attachments', require('./src/routes/attachments'))
 app.use('/api/report',  require('./src/routes/report'))
 
 // Health check

@@ -4,6 +4,7 @@ const { verifyToken, adminOnly } = require('../middleware/auth')
 const {
   getLots,
   getLotsByProduct,
+  getNextLotNo,
   createLot,
   updateLot,
   deleteLot,
@@ -11,6 +12,7 @@ const {
 
 router.get('/',                   verifyToken, getLots)
 router.get('/product/:productId', verifyToken, getLotsByProduct)
+router.get('/next-no',            verifyToken, getNextLotNo)
 router.post('/',                  verifyToken, createLot)
 router.put('/:id',                verifyToken, adminOnly, updateLot)
 router.delete('/:id',             verifyToken, adminOnly, deleteLot)

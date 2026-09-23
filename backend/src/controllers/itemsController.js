@@ -46,7 +46,7 @@ const getItemByItemId = async (req, res) => {
               l.shelf_life_days, (l.exp_date - CURRENT_DATE) AS days_remaining,
               l.qty_remaining, l.status AS lot_status,
               p.name AS product_name, p.mat_uid, p.detail,
-              p.weight_per_piece, p.max_stock, p.min_stock,
+              p.pack_size, p.pack_unit, p.stock_unit, p.max_stock, p.min_stock,
               pg.name AS group_name
        FROM item i
        JOIN lot l ON i.lot_id = l.id

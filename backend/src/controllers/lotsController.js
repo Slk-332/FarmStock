@@ -1,4 +1,5 @@
 const { pool } = require('../database')
+const { nextDocNo, createLotWithItems } = require('../services/stockService')
 
 const getLots = async (req, res) => {
   try {
@@ -7,7 +8,9 @@ const getLots = async (req, res) => {
       SELECT
         v.*,
         p.detail,
-        p.weight_per_piece,
+        p.pack_size,
+        p.pack_unit,
+        p.stock_unit,
         p.max_stock,
         p.min_stock
       FROM v_lot_detail v
@@ -49,6 +52,19 @@ const getLotsByProduct = async (req, res) => {
   }
 }
 
+/** ออกเลข Lot ถัดไปให้ฝั่งหน้าจอ — เดิม frontend เดาเลขจากจำนวนแถวซึ่งซ้ำได้ถ้ามีการลบ */
+const getNextLotNo = async (req, res) => {
+  const client = await pool.connect()
+  try {
+    res.json({ lot_no: await nextDocNo(client, 'lot') })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด' })
+  } finally {
+    client.release()
+  }
+}
+
 const createLot = async (req, res) => {
   const { product_id, lot_no, qty_received, cost, mfg_date, exp_date, supplier } = req.body
 
@@ -59,43 +75,15 @@ const createLot = async (req, res) => {
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
-
-    // สร้าง Lot
-    const lotResult = await client.query(
-      `INSERT INTO lot (product_id, lot_no, qty_received, qty_remaining, cost, mfg_date, exp_date, supplier)
-       VALUES ($1,$2,$3,$3,$4,$5,$6,$7) RETURNING *`,
-      [product_id, lot_no, qty_received, cost, mfg_date, exp_date, supplier]
-    )
-    const lot = lotResult.rows[0]
-
-    // สร้าง Item รายชิ้น
-    const product = await client.query(
-      'SELECT mat_uid FROM product WHERE id = $1', [product_id]
-    )
-    const mat_uid = product.rows[0].mat_uid.replace(/-/g, '')
-
-    const items = []
-    for (let i = 1; i <= qty_received; i++) {
-      const seq     = String(i).padStart(3, '0')
-      const lotSeq  = lot_no.replace(/[^0-9]/g, '').padStart(3, '0')
-      const item_id = `${mat_uid}-LOT${lotSeq}-${seq}`
-
-      const itemResult = await client.query(
-        `INSERT INTO item (item_id, lot_id) VALUES ($1,$2) RETURNING *`,
-        [item_id, lot.id]
-      )
-      items.push(itemResult.rows[0])
-    }
-
-    // คำนวณ AveCost ใหม่
-    await client.query('SELECT recalculate_ave_cost($1)', [product_id])
-
+    const { lot, items } = await createLotWithItems(client, {
+      product_id, lot_no, qty: qty_received, cost, mfg_date, exp_date, supplier,
+    })
     await client.query('COMMIT')
     res.status(201).json({ lot, items_created: items.length })
   } catch (err) {
     await client.query('ROLLBACK')
     console.error(err)
-    res.status(500).json({ message: 'เกิดข้อผิดพลาด' })
+    res.status(500).json({ message: err.message || 'เกิดข้อผิดพลาด' })
   } finally {
     client.release()
   }
@@ -145,5 +133,5 @@ const deleteLot = async (req, res) => {
   }
 }
 
-module.exports = { getLots, getLotsByProduct, createLot, updateLot, deleteLot }
+module.exports = { getLots, getLotsByProduct, getNextLotNo, createLot, updateLot, deleteLot }
 
