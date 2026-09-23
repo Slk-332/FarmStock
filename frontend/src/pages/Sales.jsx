@@ -241,7 +241,7 @@ export default function Sales() {
       {form && (
         <form onSubmit={handleSave} className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
           <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">
-            {editId ? `💰 แก้ไขใบขาย ${form.sale_no}` : '💰 ใบขายใหม่'}
+            {editId ? `แก้ไขใบขาย ${form.sale_no}` : 'ใบขายใหม่'}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -343,7 +343,7 @@ export default function Sales() {
               </button>
               <button type="submit" disabled={saving}
                 className="h-10 px-5 text-sm rounded-xl bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50">
-                {saving ? 'กำลังบันทึก...' : '✓ บันทึกเป็นร่าง'}
+                {saving ? 'กำลังบันทึก...' : 'บันทึกเป็นร่าง'}
               </button>
             </div>
           </div>
@@ -448,11 +448,11 @@ export default function Sales() {
                       <>
                         <button onClick={() => confirmSale(detail.id)} disabled={saving}
                           className="h-9 px-4 text-xs rounded-xl bg-green-500 text-white hover:bg-green-600 disabled:opacity-50">
-                          {saving ? 'กำลังยืนยัน...' : '💰 ยืนยันขาย + หักสต๊อก'}
+                          {saving ? 'กำลังยืนยัน...' : 'ยืนยันขาย + หักสต๊อก'}
                         </button>
                         <button onClick={() => openEdit(detail)}
                           className="h-9 px-4 text-xs rounded-xl border border-gray-200 text-gray-600 hover:bg-white">
-                          ✏️ แก้ไข
+                          แก้ไข
                         </button>
                         <button onClick={() => cancelSale(detail.id)}
                           className="h-9 px-4 text-xs rounded-xl border border-gray-200 text-red-500 hover:bg-red-50">

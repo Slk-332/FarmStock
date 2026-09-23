@@ -149,7 +149,7 @@ export default function Formulas() {
 
       {mixedProducts.length === 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-xs text-yellow-700">
-          ⚠️ ยังไม่มีสินค้าประเภท "ของผสม" — ไปลงทะเบียนสินค้าที่จะได้จากการผสมก่อน
+          ยังไม่มีสินค้าประเภท "ของผสม" — ไปลงทะเบียนสินค้าที่จะได้จากการผสมก่อน
           โดยตั้งประเภทวัตถุดิบเป็น <span className="font-medium">ของผสม (จาก Mixing)</span>
         </div>
       )}
@@ -158,7 +158,7 @@ export default function Formulas() {
       {form && (
         <form onSubmit={handleSave} className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
           <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">
-            {editId ? `📋 แก้ไขสูตร ${form.std_code}` : '📋 สูตรใหม่'}
+            {editId ? `แก้ไขสูตร ${form.std_code}` : 'สูตรใหม่'}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -284,7 +284,7 @@ export default function Formulas() {
             </button>
             <button type="submit" disabled={saving}
               className="h-10 px-5 text-sm rounded-xl bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50">
-              {saving ? 'กำลังบันทึก...' : '✓ บันทึกสูตร'}
+              {saving ? 'กำลังบันทึก...' : 'บันทึกสูตร'}
             </button>
           </div>
         </form>
@@ -355,7 +355,7 @@ export default function Formulas() {
                   <div className="flex flex-wrap gap-2">
                     <button onClick={() => openEdit(f.id)}
                       className="h-9 px-4 text-xs rounded-xl border border-gray-200 text-gray-600 hover:bg-white">
-                      ✏️ แก้ไขสูตร
+                      แก้ไขสูตร
                     </button>
                     <button onClick={() => toggleActive(f)}
                       className="h-9 px-4 text-xs rounded-xl border border-gray-200 text-gray-600 hover:bg-white">

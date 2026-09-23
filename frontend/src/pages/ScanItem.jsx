@@ -4,7 +4,7 @@ import api from '../api/axios'
 
 const expColor = (days) => {
   if (days < 0)  return { text: 'หมดอายุแล้ว', color: 'text-gray-500', bg: 'bg-gray-100' }
-  if (days < 15) return { text: `${days} วัน ⚠️`, color: 'text-red-600', bg: 'bg-red-50' }
+  if (days < 15) return { text: `${days} วัน `, color: 'text-red-600', bg: 'bg-red-50' }
   if (days < 60) return { text: `${days} วัน`, color: 'text-yellow-600', bg: 'bg-yellow-50' }
   return { text: `${days} วัน`, color: 'text-green-600', bg: 'bg-green-50' }
 }
@@ -68,7 +68,6 @@ export default function ScanItem() {
   if (error) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="bg-white rounded-xl border border-gray-200 p-6 w-full max-w-sm text-center">
-        <div className="text-3xl mb-3">❌</div>
         <div className="text-sm font-medium text-gray-700">{error}</div>
         <div className="text-xs text-gray-400 mt-2">{itemId}</div>
       </div>
@@ -84,8 +83,8 @@ export default function ScanItem() {
 
         {/* Header */}
         <div className="text-center">
-          <div className="text-2xl mb-1">🌱</div>
-          <div className="text-xs text-gray-400">FarmStock</div>
+          <img src="/icon.jpg" alt="แก้วทวีฟาร์ม" className="h-10 w-10 mx-auto mb-1 object-contain" />
+          <div className="text-xs text-gray-400">GTF Stock</div>
         </div>
 
         {/* ข้อมูลสินค้า */}
@@ -141,14 +140,14 @@ export default function ScanItem() {
         {/* Status */}
         {item.status !== 'active' && (
           <div className="bg-gray-100 rounded-xl px-4 py-3 text-center text-sm text-gray-500">
-            {item.status === 'dispensed' ? '✅ เบิกจ่ายไปแล้ว' : '⚫ หมดอายุแล้ว'}
+            {item.status === 'dispensed' ? 'เบิกจ่ายไปแล้ว' : 'หมดอายุแล้ว'}
           </div>
         )}
 
         {/* FIFO Error */}
         {fifoError && (
           <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex flex-col gap-1">
-            <div className="text-sm font-medium text-red-600">⚠️ เบิกไม่ได้</div>
+            <div className="text-sm font-medium text-red-600">เบิกไม่ได้</div>
             <div className="text-xs text-red-500">{fifoError}</div>
             <div className="text-xs text-red-400 mt-1">ต้องเบิก Lot เก่ากว่านี้ให้หมดก่อน</div>
           </div>
@@ -156,7 +155,7 @@ export default function ScanItem() {
 
         {success && (
           <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-600 text-center">
-            ✅ {success}
+            {success}
           </div>
         )}
       </div>

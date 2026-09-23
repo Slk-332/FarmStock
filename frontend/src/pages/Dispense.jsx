@@ -102,7 +102,7 @@ export default function Dispense() {
       {tab === 'dispense' && (
         <>
           <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
-            <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">🔍 เลือกสินค้าที่จะเบิก</div>
+            <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">เลือกสินค้าที่จะเบิก</div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <div className="text-xs text-gray-500 mb-1.5">MatUID / ชื่อสินค้า</div>
@@ -116,7 +116,7 @@ export default function Dispense() {
               </div>
               <div className="flex items-end">
                 <div className="text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-2.5 w-full">
-                  💡 หรือสแกน QR Code บนมือถือเพื่อเบิกได้เลย
+                  หรือสแกน QR Code บนมือถือเพื่อเบิกได้เลย
                 </div>
               </div>
             </div>
@@ -124,9 +124,9 @@ export default function Dispense() {
 
           {fifoQueue.length > 0 && (
             <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-              <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">📋 FIFO Queue</div>
+              <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">FIFO Queue</div>
               <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2 text-xs text-yellow-700">
-                ⚠️ ต้องเบิก Lot เก่าสุดให้หมดก่อน
+                ต้องเบิก Lot เก่าสุดให้หมดก่อน
               </div>
               <div className="overflow-x-auto -mx-4 px-4">
                 <table className="w-full border-collapse text-xs min-w-[600px]">
@@ -143,7 +143,7 @@ export default function Dispense() {
                       const daysLeft    = item.days_remaining
                       return (
                         <tr key={item.id} className={`border-b border-gray-50 ${canDispense ? 'bg-green-50' : ''}`}>
-                          <td className="px-2 py-2">{idx+1} {idx===0 ? '🔥' : ''}</td>
+                          <td className="px-2 py-2">{idx+1} </td>
                           <td className="px-2 py-2 font-mono text-gray-600 whitespace-nowrap">{item.item_id}</td>
                           <td className="px-2 py-2 text-gray-500 whitespace-nowrap">{item.lot_no}</td>
                           <td className="px-2 py-2 text-gray-500 whitespace-nowrap">{fmt(item.mfg_date)}</td>
@@ -177,7 +177,7 @@ export default function Dispense() {
           )}
 
           {error   && <div className="text-sm text-red-500 bg-red-50 px-4 py-3 rounded-xl">{error}</div>}
-          {success && <div className="text-sm text-green-600 bg-green-50 px-4 py-3 rounded-xl">✅ {success}</div>}
+          {success && <div className="text-sm text-green-600 bg-green-50 px-4 py-3 rounded-xl">{success}</div>}
         </>
       )}
 
@@ -245,7 +245,7 @@ export default function Dispense() {
                       ) : (
                         <button onClick={()=>{ setEditDisp(d); setEditData({ qty_used: d.qty_used, qty_waste: d.qty_waste, remark: d.remark || '' }) }}
                           className="text-xs px-2 py-1 rounded border border-gray-200 text-gray-500 hover:bg-gray-50">
-                          ✏️
+                          แก้ไข
                         </button>
                       )}
                     </td>

@@ -31,8 +31,8 @@ export default function Login() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="bg-white rounded-xl border border-gray-200 p-8 w-full max-w-sm shadow-sm">
         <div className="text-center mb-6">
-          <div className="text-4xl mb-2">🌱</div>
-          <h1 className="text-xl font-semibold text-gray-800">FarmStock</h1>
+          <img src="/logo.jpg" alt="แก้วทวีฟาร์ม" className="w-48 mx-auto mb-3" />
+          <h1 className="text-xl font-semibold text-gray-800">GTF Stock</h1>
           <p className="text-sm text-gray-500 mt-1">ระบบจัดการ Stock ผลิตภัณฑ์เกษตร</p>
         </div>
 

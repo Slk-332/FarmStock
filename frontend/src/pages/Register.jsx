@@ -126,14 +126,14 @@ export default function Register() {
       <h1 className="text-base font-semibold text-gray-800">ลงทะเบียนผลิตภัณฑ์ใหม่</h1>
 
       <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-xs text-yellow-700">
-        ⚠️ ต้องลงทะเบียนสินค้าก่อน ถึงจะลง Stock ได้
+        ต้องลงทะเบียนสินค้าก่อน ถึงจะลง Stock ได้
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
         {/* UID + ประเภท */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
-          <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">🔖 ข้อมูล UID</div>
+          <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">ข้อมูล UID</div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>MatUID <span className="text-red-400">*</span></label>
@@ -157,7 +157,7 @@ export default function Register() {
                 <select name="group_id" value={form.group_id} onChange={handleChange} className={inputClass}>
                   <option value="">-- เลือกหมวดหมู่ --</option>
                   {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                  <option value="__new_group__">➕ เพิ่มหมวดหมู่ใหม่</option>
+                  <option value="__new_group__">เพิ่มหมวดหมู่ใหม่</option>
                 </select>
               )}
             </div>
@@ -181,7 +181,7 @@ export default function Register() {
 
         {/* ข้อมูลสินค้า + หน่วย */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
-          <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">📦 ข้อมูลผลิตภัณฑ์</div>
+          <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">ข้อมูลผลิตภัณฑ์</div>
           <div>
             <label className={labelClass}>ชื่อผลิตภัณฑ์ <span className="text-red-400">*</span></label>
             <input name="name" value={form.name} onChange={handleChange}
@@ -194,7 +194,7 @@ export default function Register() {
               {newUnit.target === 'stock_unit' ? newUnitBox : (
                 <select name="stock_unit" value={form.stock_unit} onChange={handleChange} className={inputClass}>
                   {countUnits.map(u => <option key={u.code} value={u.code}>{u.name}</option>)}
-                  <option value="__new_stock_unit__">➕ เพิ่มหน่วยใหม่</option>
+                  <option value="__new_stock_unit__">เพิ่มหน่วยใหม่</option>
                 </select>
               )}
               <div className="text-xs text-gray-400 mt-1">1 หน่วยนี้ = 1 QR</div>
@@ -215,7 +215,7 @@ export default function Register() {
                   <optgroup label="นับจำนวน">
                     {packCountUnits.map(u => <option key={u.code} value={u.code}>{u.name}</option>)}
                   </optgroup>
-                  <option value="__new_pack_unit__">➕ เพิ่มหน่วยใหม่</option>
+                  <option value="__new_pack_unit__">เพิ่มหน่วยใหม่</option>
                 </select>
               )}
             </div>
@@ -238,7 +238,7 @@ export default function Register() {
 
         {/* Max/Min */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
-          <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">⚙️ กำหนด Max / Min Stock</div>
+          <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">กำหนด Max / Min Stock</div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Max Stock</label>
@@ -258,7 +258,7 @@ export default function Register() {
         </div>
 
         {error   && <div className="text-sm text-red-500 bg-red-50 px-4 py-3 rounded-xl">{error}</div>}
-        {success && <div className="text-sm text-green-600 bg-green-50 px-4 py-3 rounded-xl">✅ {success}</div>}
+        {success && <div className="text-sm text-green-600 bg-green-50 px-4 py-3 rounded-xl">{success}</div>}
 
         <div className="flex flex-col sm:flex-row justify-end gap-3">
           <button type="button" onClick={() => setForm(EMPTY_FORM)}
@@ -267,7 +267,7 @@ export default function Register() {
           </button>
           <button type="submit" disabled={loading}
             className="h-10 px-5 text-sm rounded-xl bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50">
-            {loading ? 'กำลังบันทึก...' : '✓ บันทึกลงทะเบียน'}
+            {loading ? 'กำลังบันทึก...' : 'บันทึกลงทะเบียน'}
           </button>
         </div>
       </form>

@@ -162,7 +162,7 @@ export default function Orders() {
       {showForm && form && (
         <form onSubmit={handleSave} className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
           <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">
-            🧾 ใบสั่งซื้อใหม่
+            ใบสั่งซื้อใหม่
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -255,7 +255,7 @@ export default function Orders() {
               </button>
               <button type="submit" disabled={saving}
                 className="h-10 px-5 text-sm rounded-xl bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50">
-                {saving ? 'กำลังบันทึก...' : '✓ บันทึกใบสั่งซื้อ'}
+                {saving ? 'กำลังบันทึก...' : 'บันทึกใบสั่งซื้อ'}
               </button>
             </div>
           </div>
@@ -328,7 +328,7 @@ export default function Orders() {
                       <div key={a.id} className="flex items-center gap-2 text-xs">
                         <a href={a.file_url} target="_blank" rel="noreferrer"
                           className="text-blue-600 hover:underline truncate">
-                          📎 {a.file_name || a.file_url}
+                          {a.file_name || a.file_url}
                         </a>
                         <span className="text-gray-400">{a.uploaded_by_name}</span>
                         <button onClick={() => removeAttachment(a.id)}
@@ -362,7 +362,7 @@ export default function Orders() {
                     {['ordered', 'partial'].includes(detail.status) && (
                       <button onClick={() => navigate(`/receive?order=${detail.id}`)}
                         className="h-9 px-4 text-xs rounded-xl bg-green-500 text-white hover:bg-green-600">
-                        📥 รับของเข้า Stock
+                        รับของเข้า Stock
                       </button>
                     )}
                     {['draft', 'ordered'].includes(detail.status) && (

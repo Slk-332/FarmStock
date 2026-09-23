@@ -383,8 +383,8 @@ export default function Print() {
 
   const statusConfig = {
     checking: { label: 'กำลังตรวจสอบ...',    className: 'bg-yellow-100 text-yellow-600' },
-    online:   { label: 'Print Agent: พร้อม ✅', className: 'bg-green-100 text-green-600' },
-    offline:  { label: 'Print Agent: ไม่พบ ❌', className: 'bg-red-100 text-red-500' },
+    online:   { label: 'Print Agent: พร้อม ', className: 'bg-green-100 text-green-600' },
+    offline:  { label: 'Print Agent: ไม่พบ ', className: 'bg-red-100 text-red-500' },
   }[agentStatus]
 
   const msgClass = {
@@ -402,8 +402,8 @@ export default function Print() {
       {/* เลือกวิธีพิมพ์ */}
       <div className="grid grid-cols-2 gap-2">
         {[
-          { value: 'bluetooth', label: '🔵 Bluetooth',   hint: 'มือถือ / แท็บเล็ต / เครื่องพกพา' },
-          { value: 'agent',     label: '🖨️ Print Agent', hint: 'คอมที่ต่อเครื่องพิมพ์ USB' },
+          { value: 'bluetooth', label: 'Bluetooth',   hint: 'มือถือ / แท็บเล็ต / เครื่องพกพา' },
+          { value: 'agent',     label: 'Print Agent', hint: 'คอมที่ต่อเครื่องพิมพ์ USB' },
         ].map((m) => (
           <button key={m.value} onClick={() => setMethod(m.value)}
             className={`rounded-xl border px-3 py-2 text-left transition-colors ${method === m.value ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
@@ -417,12 +417,12 @@ export default function Print() {
       {method === 'bluetooth' && (
         <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex flex-col gap-3">
           {btUnsupported ? (
-            <div className="text-xs text-amber-600">⚠ {btUnsupported} · ยังใช้ปุ่ม "ปริ้นผ่าน Browser" ได้</div>
+            <div className="text-xs text-amber-600">{btUnsupported} · ยังใช้ปุ่ม "ปริ้นผ่าน Browser" ได้</div>
           ) : (
             <>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={`text-xs px-3 py-1.5 rounded-lg font-medium ${btPrinter ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
-                  🔵 {btPrinter ? `${btPrinter.name}: พร้อม ✅` : 'ยังไม่ได้เชื่อมต่อ'}
+                  {btPrinter ? `${btPrinter.name}: พร้อม ` : 'ยังไม่ได้เชื่อมต่อ'}
                 </span>
                 {btPrinter ? (
                   <>
@@ -443,7 +443,7 @@ export default function Print() {
                 )}
                 <button onClick={() => setShowConfig((v) => !v)}
                   className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">
-                  ⚙️ ตั้งค่า
+                  ตั้งค่า
                 </button>
               </div>
 
@@ -510,7 +510,7 @@ export default function Print() {
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2 flex-wrap">
               <span className={`text-xs px-3 py-1.5 rounded-lg font-medium ${statusConfig.className}`}>
-                🖨️ {statusConfig.label}
+                {statusConfig.label}
               </span>
               <button onClick={reconnectAgent} disabled={agentStatus === 'checking'}
                 className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50">
@@ -518,7 +518,7 @@ export default function Print() {
               </button>
               <button onClick={() => setShowConfig((v) => !v)}
                 className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">
-                ⚙️ ตั้งค่า
+                ตั้งค่า
               </button>
               {agentStatus === 'online' && (
                 <button onClick={handleSelfTest} disabled={!settings.printer}
@@ -545,7 +545,7 @@ export default function Print() {
           </div>
 
           {selectedPrinter?.errorState && (
-            <div className="text-xs text-amber-600">⚠ {selectedPrinter.name}: {selectedPrinter.errorState}</div>
+            <div className="text-xs text-amber-600">{selectedPrinter.name}: {selectedPrinter.errorState}</div>
           )}
 
           {agentStatus === 'offline' && !showConfig && (
@@ -602,7 +602,7 @@ export default function Print() {
 
       {/* ขนาด Label */}
       <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex flex-wrap items-center gap-3">
-        <span className="text-xs font-medium text-gray-600">📐 ขนาด Label:</span>
+        <span className="text-xs font-medium text-gray-600">ขนาด Label:</span>
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-400">กว้าง</label>
           <input type="number" value={labelW} onChange={(e) => setLabelW(Number(e.target.value))} min="20" max="150"
@@ -630,7 +630,7 @@ export default function Print() {
       {selectedItems.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex flex-wrap items-center gap-4">
           <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-gray-600">👁 ตัวอย่างฉลาก</span>
+            <span className="text-xs font-medium text-gray-600">ตัวอย่างฉลาก</span>
             <span className="text-xs text-gray-400">ภาพนี้คือข้อมูลชุดเดียวกับที่ส่งเข้าเครื่องพิมพ์</span>
           </div>
           {/* ปล่อยให้ canvas ใช้ขนาด intrinsic (1 px = 1 dot) จะได้เห็นของจริงแบบ 1:1 */}
@@ -659,7 +659,6 @@ export default function Print() {
       {/* Toolbar */}
       <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 flex-1 min-w-40">
-          <span className="text-gray-400 text-sm">🔍</span>
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="ค้นหา Lot, Item ID, ชื่อสินค้า..."
             className="flex-1 text-sm outline-none text-gray-700 placeholder-gray-400 min-w-0" />
@@ -741,13 +740,13 @@ export default function Print() {
               <button onClick={handlePrintBluetooth}
                 disabled={printing || !btPrinter}
                 className="px-4 h-10 text-sm rounded-xl bg-green-500 text-white hover:bg-green-600 disabled:opacity-50 font-medium">
-                {printing ? 'กำลังพิมพ์...' : '🔵 พิมพ์ผ่าน Bluetooth'}
+                {printing ? 'กำลังพิมพ์...' : 'พิมพ์ผ่าน Bluetooth'}
               </button>
             ) : (
               <button onClick={handlePrintAgent}
                 disabled={printing || agentStatus !== 'online' || !settings.printer}
                 className="px-4 h-10 text-sm rounded-xl bg-green-500 text-white hover:bg-green-600 disabled:opacity-50 font-medium">
-                {printing ? 'กำลังพิมพ์...' : '🖨️ พิมพ์ผ่าน Print Agent'}
+                {printing ? 'กำลังพิมพ์...' : 'พิมพ์ผ่าน Print Agent'}
               </button>
             )}
             <button onClick={handlePrintBrowser} disabled={printing}

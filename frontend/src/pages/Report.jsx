@@ -87,7 +87,7 @@ export default function Report() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-base font-semibold text-gray-800">Report</h1>
+      <h1 className="text-base font-semibold text-gray-800">Dashboard</h1>
 
       <SummaryCards summary={summary} />
 
@@ -95,7 +95,6 @@ export default function Report() {
         <div className="flex flex-col sm:flex-row gap-3">
           {summary.alerts.filter(a=>a.stock_status==='out').length > 0 && (
             <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-start gap-3 flex-1">
-              <span className="text-lg">🔴</span>
               <div>
                 <div className="text-xs font-medium text-red-600">หมดแล้ว {summary.alerts.filter(a=>a.stock_status==='out').length} รายการ</div>
                 <div className="text-xs text-red-400 mt-0.5">{summary.alerts.filter(a=>a.stock_status==='out').map(a=>a.name).join(', ')}</div>
@@ -104,7 +103,6 @@ export default function Report() {
           )}
           {summary.alerts.filter(a=>a.stock_status==='low').length > 0 && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 flex items-start gap-3 flex-1">
-              <span className="text-lg">🟡</span>
               <div>
                 <div className="text-xs font-medium text-yellow-600">ต่ำกว่า Min {summary.alerts.filter(a=>a.stock_status==='low').length} รายการ</div>
                 <div className="text-xs text-yellow-500 mt-0.5">{summary.alerts.filter(a=>a.stock_status==='low').map(a=>`${a.name} (${a.total_stock}/${a.min_stock})`).join(', ')}</div>
@@ -113,7 +111,6 @@ export default function Report() {
           )}
           {summary.alerts.filter(a=>a.stock_status==='full').length > 0 && (
             <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-start gap-3 flex-1">
-              <span className="text-lg">🔵</span>
               <div>
                 <div className="text-xs font-medium text-blue-600">เกิน Max {summary.alerts.filter(a=>a.stock_status==='full').length} รายการ</div>
                 <div className="text-xs text-blue-400 mt-0.5">{summary.alerts.filter(a=>a.stock_status==='full').map(a=>`${a.name} (${a.total_stock}/${a.max_stock})`).join(', ')}</div>
@@ -125,7 +122,7 @@ export default function Report() {
 
       <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="text-sm font-medium text-gray-700">📊 ยอดเบิกจ่ายรายวัน</div>
+          <div className="text-sm font-medium text-gray-700">ยอดเบิกจ่ายรายวัน</div>
           <div className="flex items-center gap-2 flex-wrap">
             <input type="date" value={chartFrom} onChange={e=>setChartFrom(e.target.value)}
               className="h-8 px-3 text-xs rounded-lg border border-gray-200 focus:outline-none text-gray-600 flex-1 sm:flex-none" />
@@ -154,7 +151,7 @@ export default function Report() {
       {summary && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-            <div className="text-xs font-medium text-gray-700">📤 เบิกจ่ายวันนี้</div>
+            <div className="text-xs font-medium text-gray-700">เบิกจ่ายวันนี้</div>
             {summary.today_dispense.length === 0 ? <div className="text-xs text-gray-400">ยังไม่มีการเบิกจ่ายวันนี้</div>
               : summary.today_dispense.map(d => {
                 const max = Math.max(...summary.today_dispense.map(x => x.qty))
@@ -172,7 +169,7 @@ export default function Report() {
             }
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-            <div className="text-xs font-medium text-gray-700">📥 รับเข้าวันนี้</div>
+            <div className="text-xs font-medium text-gray-700">รับเข้าวันนี้</div>
             {summary.today_stock_in.length === 0 ? <div className="text-xs text-gray-400">ยังไม่มีการรับสินค้าวันนี้</div>
               : summary.today_stock_in.map(d => {
                 const max = Math.max(...summary.today_stock_in.map(x => x.qty))
@@ -195,7 +192,7 @@ export default function Report() {
       {summary && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-            <div className="text-xs font-medium text-gray-700">📤 เบิกจ่ายล่าสุด</div>
+            <div className="text-xs font-medium text-gray-700">เบิกจ่ายล่าสุด</div>
             <table className="w-full border-collapse text-xs">
               <thead><tr className="border-b border-gray-100">{['เวลา','ชื่อสินค้า','Lot','Cost'].map(h=><th key={h} className="pb-2 text-left text-gray-400 font-medium whitespace-nowrap">{h}</th>)}</tr></thead>
               <tbody>
@@ -213,7 +210,7 @@ export default function Report() {
             </table>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-            <div className="text-xs font-medium text-gray-700">📦 สินค้าพร้อมใช้</div>
+            <div className="text-xs font-medium text-gray-700">สินค้าพร้อมใช้</div>
             <table className="w-full border-collapse text-xs">
               <thead><tr className="border-b border-gray-100">{['ชื่อสินค้า','Stock','Max','Min','สถานะ'].map(h=><th key={h} className="pb-2 text-left text-gray-400 font-medium">{h}</th>)}</tr></thead>
               <tbody>
@@ -249,7 +246,6 @@ export default function Report() {
 
       <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 flex-1 min-w-40">
-          <span className="text-gray-400 text-sm">🔍</span>
           <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="ค้นหา UID, Lot, ชื่อสินค้า..."
             className="flex-1 text-sm outline-none text-gray-700 placeholder-gray-400 min-w-0" />
           {search && <button onClick={()=>setSearch('')} className="text-gray-400 text-xs">✕</button>}
@@ -261,7 +257,7 @@ export default function Report() {
             <input type="date" value={to} onChange={e=>setTo(e.target.value)} className="h-8 px-3 text-xs rounded-lg border border-gray-200 focus:outline-none text-gray-600" />
           </div>
         )}
-        <button onClick={handleExport} className="text-xs px-3 h-8 rounded-lg border border-green-200 bg-green-50 text-green-600 hover:bg-green-100 whitespace-nowrap">📥 Export CSV</button>
+        <button onClick={handleExport} className="text-xs px-3 h-8 rounded-lg border border-green-200 bg-green-50 text-green-600 hover:bg-green-100 whitespace-nowrap">Export CSV</button>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
@@ -320,7 +316,7 @@ export default function Report() {
             <thead><tr className="border-b border-gray-100">{['MatUID','ชื่อสินค้า','Group','Stock','Min','Max','สถานะ'].map(h=><th key={h} className="px-3 py-2.5 text-left text-gray-400 font-medium whitespace-nowrap">{h}</th>)}</tr></thead>
             <tbody>
               {loading ? <tr><td colSpan={7} className="text-center py-8 text-gray-400">กำลังโหลด...</td></tr>
-              : data.length === 0 ? <tr><td colSpan={7} className="text-center py-8 text-gray-400">✅ Stock ทุกรายการอยู่ในเกณฑ์ปกติ</td></tr>
+              : data.length === 0 ? <tr><td colSpan={7} className="text-center py-8 text-gray-400">Stock ทุกรายการอยู่ในเกณฑ์ปกติ</td></tr>
               : data.map(d => (
                 <tr key={d.product_id} className="border-b border-gray-50 hover:bg-gray-50">
                   <td className="px-3 py-2 whitespace-nowrap text-gray-500">{d.mat_uid}</td>
@@ -342,7 +338,7 @@ export default function Report() {
             <thead><tr className="border-b border-gray-100">{['MatUID','ชื่อสินค้า','Lot','คงเหลือ','วันผลิต','วันหมดอายุ','อายุการใช้งาน','เหลืออีก','สถานะ'].map(h=><th key={h} className="px-3 py-2.5 text-left text-gray-400 font-medium whitespace-nowrap">{h}</th>)}</tr></thead>
             <tbody>
               {loading ? <tr><td colSpan={9} className="text-center py-8 text-gray-400">กำลังโหลด...</td></tr>
-              : data.length === 0 ? <tr><td colSpan={9} className="text-center py-8 text-gray-400">✅ ไม่มีสินค้าใกล้หมดอายุ</td></tr>
+              : data.length === 0 ? <tr><td colSpan={9} className="text-center py-8 text-gray-400">ไม่มีสินค้าใกล้หมดอายุ</td></tr>
               : data.map(d => (
                 <tr key={d.id} className="border-b border-gray-50 hover:bg-gray-50">
                   <td className="px-3 py-2 whitespace-nowrap text-gray-500">{d.mat_uid}</td>
@@ -355,7 +351,7 @@ export default function Report() {
                   <td className="px-3 py-2 whitespace-nowrap"><span className={expColor(d.days_remaining)}>{d.days_remaining < 0 ? 'หมดอายุแล้ว' : `${d.days_remaining} วัน`}</span></td>
                   <td className="px-3 py-2 whitespace-nowrap">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${d.days_remaining < 0 ? 'bg-gray-100 text-gray-400' : d.days_remaining < 15 ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'}`}>
-                      {d.days_remaining < 0 ? '⚫ หมดอายุ' : d.days_remaining < 15 ? '🔴 วิกฤต' : '🟡 ใกล้หมด'}
+                      {d.days_remaining < 0 ? 'หมดอายุ' : d.days_remaining < 15 ? 'วิกฤต' : 'ใกล้หมด'}
                     </span>
                   </td>
                 </tr>

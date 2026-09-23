@@ -83,7 +83,7 @@ export default function PlotScan() {
           {plot.area_code} · {plot.area_name}
           {plot.size && <> · {trimNumber(plot.size)} {plot.size_unit_name}</>}
         </div>
-        {plot.crop && <div className="text-sm text-gray-600">🌿 {plot.crop}</div>}
+        {plot.crop && <div className="text-sm text-gray-600">{plot.crop}</div>}
         {plot.planted_date && (
           <div className="text-xs text-gray-400">ปลูกเมื่อ {String(plot.planted_date).slice(0, 10)}</div>
         )}
@@ -96,7 +96,7 @@ export default function PlotScan() {
       </div>
 
       {error  && <div className="text-sm text-red-500 bg-red-50 px-4 py-3 rounded-xl">{error}</div>}
-      {notice && <div className="text-sm text-green-600 bg-green-50 px-4 py-3 rounded-xl">✅ {notice}</div>}
+      {notice && <div className="text-sm text-green-600 bg-green-50 px-4 py-3 rounded-xl">{notice}</div>}
 
       {/* บันทึกเร็ว */}
       <div className="bg-white rounded-2xl border border-gray-200 p-5 flex flex-col gap-3">

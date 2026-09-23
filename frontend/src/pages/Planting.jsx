@@ -230,7 +230,7 @@ export default function Planting() {
           </select>
           <button onClick={() => setShowAreas(!showAreas)}
             className="h-9 px-4 text-sm rounded-xl border border-gray-200 text-gray-600 hover:bg-white">
-            🗺️ โซน
+            โซน
           </button>
           <button onClick={() => openPlotForm(null)} disabled={areas.length === 0}
             className="h-9 px-4 text-sm rounded-xl bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 whitespace-nowrap">
@@ -240,18 +240,18 @@ export default function Planting() {
       </div>
 
       {error  && <div className="text-sm text-red-500 bg-red-50 px-4 py-3 rounded-xl">{error}</div>}
-      {notice && <div className="text-sm text-green-600 bg-green-50 px-4 py-3 rounded-xl">✅ {notice}</div>}
+      {notice && <div className="text-sm text-green-600 bg-green-50 px-4 py-3 rounded-xl">{notice}</div>}
 
       {areas.length === 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-xs text-yellow-700">
-          ⚠️ ยังไม่มีโซน — กดปุ่ม "🗺️ โซน" เพื่อสร้างโซนก่อน แล้วค่อยแบ่งแปลงในโซนนั้น
+          ยังไม่มีโซน — กดปุ่ม "โซน" เพื่อสร้างโซนก่อน แล้วค่อยแบ่งแปลงในโซนนั้น
         </div>
       )}
 
       {/* ===== จัดการโซน ===== */}
       {showAreas && (
         <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
-          <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">🗺️ โซน</div>
+          <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">โซน</div>
           {areas.map(a => (
             <div key={a.id} className="flex items-center gap-3 text-sm">
               <span className="font-medium text-gray-700">{a.area_code}</span>
@@ -279,7 +279,7 @@ export default function Planting() {
       {plotForm && (
         <form onSubmit={savePlot} className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
           <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">
-            {plotForm.id ? '🌱 แก้ไขแปลง' : '🌱 แปลงใหม่'}
+            {plotForm.id ? 'แก้ไขแปลง' : 'แปลงใหม่'}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
@@ -338,7 +338,7 @@ export default function Planting() {
             </button>
             <button type="submit" disabled={saving}
               className="h-10 px-5 text-sm rounded-xl bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50">
-              {saving ? 'กำลังบันทึก...' : '✓ บันทึกแปลง'}
+              {saving ? 'กำลังบันทึก...' : 'บันทึกแปลง'}
             </button>
           </div>
         </form>
@@ -364,7 +364,7 @@ export default function Planting() {
                 <span className="text-sm text-gray-700">{p.name}</span>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${badge.cls}`}>{badge.text}</span>
                 <span className="text-xs text-gray-400">{p.area_code}</span>
-                {p.crop && <span className="text-xs text-gray-500">🌿 {p.crop}</span>}
+                {p.crop && <span className="text-xs text-gray-500">{p.crop}</span>}
                 {p.size && <span className="text-xs text-gray-400">{trimNumber(p.size)} {p.size_unit_name}</span>}
                 <span className="ml-auto text-xs text-gray-500">
                   ต้นทุนค้าง {unallocated.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿
@@ -400,15 +400,15 @@ export default function Planting() {
                       output_units: '', cost_total: String(detail.unallocated_cost), exp_date: '', note: '',
                     })}
                       className="h-9 px-4 text-xs rounded-xl bg-green-500 text-white hover:bg-green-600">
-                      🌾 บันทึกเก็บเกี่ยว
+                      บันทึกเก็บเกี่ยว
                     </button>
                     <button onClick={showQr}
                       className="h-9 px-4 text-xs rounded-xl border border-gray-200 text-gray-600 hover:bg-white">
-                      📱 QR ของแปลง
+                      QR ของแปลง
                     </button>
                     <button onClick={() => openPlotForm(p)}
                       className="h-9 px-4 text-xs rounded-xl border border-gray-200 text-gray-600 hover:bg-white">
-                      ✏️ แก้ไข
+                      แก้ไข
                     </button>
                   </div>
 
@@ -584,7 +584,7 @@ export default function Planting() {
                         </button>
                         <button type="submit" disabled={saving || produceProducts.length === 0}
                           className="h-9 px-4 text-xs rounded-xl bg-green-500 text-white hover:bg-green-600 disabled:opacity-50">
-                          {saving ? 'กำลังบันทึก...' : '🌾 บันทึก + เข้า Stock'}
+                          {saving ? 'กำลังบันทึก...' : 'บันทึก + เข้า Stock'}
                         </button>
                       </div>
                     </form>

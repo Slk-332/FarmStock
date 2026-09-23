@@ -43,7 +43,7 @@ export function printViaBrowser(labels, { widthMm, heightMm }) {
     const doc = iframe.contentDocument
     doc.open()
     doc.write(`<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>FarmStock Labels</title>
+<html><head><meta charset="utf-8"><title>GTF Stock Labels</title>
 <style>
   @page { size: ${widthMm}mm ${heightMm}mm; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }

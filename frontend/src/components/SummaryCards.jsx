@@ -36,7 +36,7 @@ export default function SummaryCards({ summary }) {
       {summary.total_by_product?.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-3">
           <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">
-            💰 ยอดเบิกจ่ายรวมรายสินค้า
+            ยอดเบิกจ่ายรวมรายสินค้า
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[480px] border-collapse text-xs">

@@ -123,13 +123,12 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h1 className="text-base font-semibold text-gray-800">Dashboard</h1>
+        <h1 className="text-base font-semibold text-gray-800">สต๊อกคงเหลือ</h1>
         <span className="text-xs text-gray-400">{lots.length} Lot · {items.length} ชิ้น</span>
       </div>
 
       {/* Toolbar */}
       <div className="bg-white rounded-xl border border-gray-200 px-4 py-2.5 flex items-center gap-3">
-        <span className="text-gray-400 text-sm">🔍</span>
         <input type="text" value={search} onChange={e=>setSearch(e.target.value)}
           placeholder="ค้นหา MatUID, ชื่อสินค้า, Lot, Item ID, วันที่..."
           className="flex-1 text-sm outline-none text-gray-700 placeholder-gray-400" />
@@ -245,11 +244,11 @@ export default function Dashboard() {
                         <div className="flex gap-1">
                           <button onClick={()=>handleEdit(lot)}
                             className="text-xs px-2 py-1 rounded border border-gray-200 text-gray-500 hover:bg-gray-50">
-                            ✏️
+                            แก้ไข
                           </button>
                           <button onClick={()=>handleDeleteLot(lot.id)}
                             className="text-xs px-2 py-1 rounded border border-red-200 text-red-500 hover:bg-red-50">
-                            🗑️
+                            ลบ
                           </button>
                         </div>
                       )}
@@ -283,11 +282,11 @@ export default function Dashboard() {
                   <span className="text-xs text-gray-400 ml-auto">{lotItems.length} ชิ้น</span>
                   <button onClick={e=>{ e.stopPropagation(); handleDeleteLot(lot.id) }}
                     className="text-xs px-2 py-1 rounded border border-red-200 text-red-500 hover:bg-red-50">
-                    🗑️ ลบ Lot
+                    ลบ Lot
                   </button>
                   <button onClick={e=>{ e.stopPropagation(); handleEdit(lot); if(!isExp) toggleExpand(lot.id) }}
                     className="text-xs px-2 py-1 rounded border border-gray-200 text-gray-500 hover:bg-gray-50">
-                    ✏️ แก้ไข Lot
+                    แก้ไข Lot
                   </button>
                   <span className="text-xs text-gray-400">{isExp ? '▲' : '▼'}</span>
                 </div>
@@ -358,11 +357,11 @@ export default function Dashboard() {
                       </span>
                       <button onClick={()=>handleEdit(parentLot)}
                         className="text-xs px-2 py-1 rounded border border-gray-200 text-gray-500 hover:bg-gray-50">
-                        ✏️
+                        แก้ไข
                       </button>
                       <button onClick={()=>handleDeleteItem(item.id)}
                         className="text-xs px-2 py-1 rounded border border-red-200 text-red-500 hover:bg-red-50">
-                        🗑️
+                        ลบ
                       </button>
                     </div>
                   )

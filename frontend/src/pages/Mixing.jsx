@@ -174,7 +174,7 @@ export default function Mixing() {
       {produced && (
         <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex flex-wrap items-center gap-3 text-sm text-green-700">
           <span>
-            ✅ ผลิตเสร็จ — Lot {produced.output_lot_no} · ต้นทุนรวม{' '}
+            ผลิตเสร็จ — Lot {produced.output_lot_no} · ต้นทุนรวม{' '}
             {Number(produced.total_cost).toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
             ({trimNumber(produced.cost_per_unit, 2)} บาท/หน่วย) · สร้าง QR {produced.qr_created} ดวง
           </span>
@@ -188,7 +188,7 @@ export default function Mixing() {
       {/* ===== ฟอร์มสั่งผลิต ===== */}
       {form && (
         <form onSubmit={handleCreate} className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-4">
-          <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">⚗️ ใบสั่งผลิตใหม่</div>
+          <div className="text-sm font-medium text-gray-700 pb-2 border-b border-gray-100">ใบสั่งผลิตใหม่</div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
@@ -240,7 +240,7 @@ export default function Mixing() {
             </button>
             <button type="submit" disabled={saving}
               className="h-10 px-5 text-sm rounded-xl bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50">
-              {saving ? 'กำลังบันทึก...' : '✓ สร้างใบสั่งผลิต'}
+              {saving ? 'กำลังบันทึก...' : 'สร้างใบสั่งผลิต'}
             </button>
           </div>
         </form>
@@ -345,7 +345,7 @@ export default function Mixing() {
                               </div>
                               <button onClick={handleProduce} disabled={producing}
                                 className="h-10 px-5 text-sm rounded-xl bg-green-500 text-white hover:bg-green-600 disabled:opacity-50">
-                                {producing ? 'กำลังผลิต...' : '⚗️ ยืนยันผลิต + หักสต๊อก'}
+                                {producing ? 'กำลังผลิต...' : 'ยืนยันผลิต + หักสต๊อก'}
                               </button>
                             </div>
                           ) : (
