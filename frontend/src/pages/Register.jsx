@@ -31,9 +31,12 @@ export default function Register() {
 
   useEffect(() => { fetchGroups(); fetchUnits() }, [])
 
-  // หน่วยนับ = กระสอบ/ถุง/ขวด (1 หน่วย = 1 QR), หน่วยขนาดบรรจุ = กิโลกรัม/ลิตร
+  // หน่วยนับ = กระสอบ/ถุง/แผง (1 หน่วย = 1 QR)
+  // หน่วยขนาดบรรจุ = กิโลกรัม/ลิตร หรือหน่วยนับย่อย เช่น แผงละ 30 ฟอง, แพ็คละ 100 ใบ
   const countUnits   = useMemo(() => units.filter(u => u.kind === 'count'), [units])
-  const measureUnits = useMemo(() => units.filter(u => u.kind !== 'count'), [units])
+  const measureUnits = useMemo(() => units.filter(u => u.kind === 'weight' || u.kind === 'volume'), [units])
+  const packCountUnits = useMemo(
+    () => countUnits.filter(u => u.code !== form.stock_unit), [countUnits, form.stock_unit])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -101,6 +104,14 @@ export default function Register() {
       <input autoFocus value={newUnit.name}
         onChange={e => setNewUnit(prev => ({ ...prev, name: e.target.value }))}
         className={inputClass} placeholder="ชื่อหน่วยใหม่ เช่น ปี๊บ" />
+      {newUnit.target === 'pack_unit' && (
+        <select value={newUnit.kind} onChange={e => setNewUnit(prev => ({ ...prev, kind: e.target.value }))}
+          className="h-10 px-2 text-xs rounded-xl border border-gray-200 bg-white text-gray-600">
+          <option value="weight">น้ำหนัก</option>
+          <option value="volume">ปริมาตร</option>
+          <option value="count">นับจำนวน</option>
+        </select>
+      )}
       <button type="button" onClick={handleAddUnit}
         className="px-3 h-10 text-xs rounded-xl bg-blue-500 text-white hover:bg-blue-600 whitespace-nowrap">
         เพิ่ม
@@ -198,7 +209,12 @@ export default function Register() {
               {newUnit.target === 'pack_unit' ? newUnitBox : (
                 <select name="pack_unit" value={form.pack_unit} onChange={handleChange} className={inputClass}>
                   <option value="">-- ไม่ระบุ --</option>
-                  {measureUnits.map(u => <option key={u.code} value={u.code}>{u.name}</option>)}
+                  <optgroup label="น้ำหนัก / ปริมาตร">
+                    {measureUnits.map(u => <option key={u.code} value={u.code}>{u.name}</option>)}
+                  </optgroup>
+                  <optgroup label="นับจำนวน">
+                    {packCountUnits.map(u => <option key={u.code} value={u.code}>{u.name}</option>)}
+                  </optgroup>
                   <option value="__new_pack_unit__">➕ เพิ่มหน่วยใหม่</option>
                 </select>
               )}

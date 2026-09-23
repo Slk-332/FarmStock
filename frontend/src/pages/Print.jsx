@@ -6,9 +6,26 @@ import {
   getAgentSettings, saveAgentSettings, checkAgent,
   fetchPrinters, selfTest, sendPrintJob, DEFAULT_AGENT_URL,
 } from '../lib/printAgent'
+import {
+  bluetoothUnsupportedReason, getBluetoothSettings, saveBluetoothSettings,
+  connectBluetoothPrinter, reconnectBluetoothPrinter, disconnectBluetoothPrinter,
+  getConnectedPrinter, onBluetoothDisconnect, writeToBluetoothPrinter,
+} from '../lib/bluetoothPrint'
+import { PROTOCOLS, buildJob as buildPrinterJob, buildSelfTest as buildPrinterSelfTest } from '../lib/printerCommands'
 
 const SIZE_PRESETS = [[40, 20], [50, 40], [60, 40], [80, 50], [100, 70]]
 const RENDER_CHUNK = 10 // เรนเดอร์ทีละกี่ดวงก่อนคืน event loop ให้ UI ไม่ค้าง
+const METHOD_KEY = 'farmstock.printMethod'
+
+/** มือถือ/แท็บเล็ตไม่มี Print Agent อยู่แล้ว เริ่มที่ Bluetooth เลย */
+function initialMethod() {
+  try {
+    const saved = localStorage.getItem(METHOD_KEY)
+    if (saved === 'agent' || saved === 'bluetooth') return saved
+  } catch { /* อ่าน storage ไม่ได้ ใช้ค่าเดาแทน */ }
+  const touch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
+  return touch ? 'bluetooth' : 'agent'
+}
 
 export default function Print() {
   const [items,    setItems]    = useState([])
@@ -25,6 +42,12 @@ export default function Print() {
   const [agentInfo,   setAgentInfo]   = useState(null)
   const [printers,    setPrinters]    = useState([])
   const [showConfig,  setShowConfig]  = useState(false)
+
+  const [method,     setMethodState] = useState(initialMethod)
+  const [btSettings, setBtSettings]  = useState(getBluetoothSettings)
+  const [btPrinter,  setBtPrinter]   = useState(getConnectedPrinter)
+  const [btBusy,     setBtBusy]      = useState(false)
+  const btUnsupported = useMemo(() => bluetoothUnsupportedReason(), [])
 
   const [printing, setPrinting] = useState(false)
   const [progress, setProgress] = useState(null)
@@ -87,11 +110,63 @@ export default function Print() {
   }
 
   useEffect(() => {
-    // เช็คครั้งเดียวตอนเข้าหน้า — หลังจากนั้นผู้ใช้กดปุ่มเชื่อมต่อใหม่เอง
+    // เช็คครั้งเดียวตอนเลือกโหมด Agent — หลังจากนั้นผู้ใช้กดปุ่มเชื่อมต่อใหม่เอง
     // (สถานะเริ่มต้นเป็น 'checking' อยู่แล้ว จึงไม่ต้อง setState ตรงนี้)
-    connectAgent()
+    if (method === 'agent' && agentStatus === 'checking') connectAgent()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [method])
+
+  const setMethod = (next) => {
+    setMethodState(next)
+    try { localStorage.setItem(METHOD_KEY, next) } catch { /* ไม่เป็นไร แค่จำไม่ได้ */ }
+  }
+
+  /* ---------- Bluetooth ---------- */
+
+  useEffect(() => onBluetoothDisconnect(() => setBtPrinter(null)), [])
+
+  useEffect(() => {
+    // เคยอนุญาตเครื่องไว้แล้ว ลองต่อให้เองแบบเงียบ ๆ จะได้ไม่ต้องกดเลือกเครื่องทุกครั้ง
+    if (method !== 'bluetooth' || btUnsupported || getConnectedPrinter()) return
+    let cancelled = false
+    reconnectBluetoothPrinter().then((p) => { if (!cancelled && p) setBtPrinter(p) })
+    return () => { cancelled = true }
+  }, [method, btUnsupported])
+
+  const updateBtSetting = (patch) => setBtSettings(saveBluetoothSettings(patch))
+
+  const handleBtConnect = async () => {
+    setBtBusy(true)
+    setMsg(null)
+    try {
+      const printer = await connectBluetoothPrinter()
+      setBtPrinter(printer)
+      setMsg({ type: 'ok', text: `เชื่อมต่อ "${printer.name}" แล้ว` })
+    } catch (err) {
+      setMsg({ type: 'err', text: `เชื่อมต่อไม่สำเร็จ: ${err.message}` })
+    } finally {
+      setBtBusy(false)
+    }
+  }
+
+  const handleBtDisconnect = () => {
+    disconnectBluetoothPrinter()
+    setBtPrinter(null)
+  }
+
+  const handleBtSelfTest = async () => {
+    setBtBusy(true)
+    try {
+      setMsg({ type: 'info', text: 'กำลังส่งฉลากทดสอบ...' })
+      const bytes = buildPrinterSelfTest(btSettings.protocol, { widthMm: labelW, heightMm: labelH, gapMm: Number(btSettings.gapMm) })
+      await writeToBluetoothPrinter(bytes, { chunkSize: btSettings.chunkSize })
+      setMsg({ type: 'ok', text: 'ส่งฉลากทดสอบแล้ว — ถ้าไม่มีอะไรออกมา ลองเปลี่ยนภาษาเครื่องพิมพ์ (TSPL ↔ ESC/POS)' })
+    } catch (err) {
+      setMsg({ type: 'err', text: `ทดสอบไม่สำเร็จ: ${err.message}` })
+    } finally {
+      setBtBusy(false)
+    }
+  }
 
   const updateSetting = (patch) => setSettings(saveAgentSettings(patch))
 
@@ -215,6 +290,49 @@ export default function Print() {
     }
   }
 
+  /* ---------- พิมพ์ผ่าน Bluetooth ---------- */
+
+  const handlePrintBluetooth = async () => {
+    if (!selectedItems.length || printing) return
+    if (!btPrinter) {
+      setMsg({ type: 'err', text: 'ยังไม่ได้เชื่อมต่อเครื่องพิมพ์ Bluetooth' })
+      return
+    }
+
+    setPrinting(true)
+    setMsg(null)
+    try {
+      const payloads = await renderAll(selectedItems)
+      const bytes = buildPrinterJob(btSettings.protocol, {
+        widthMm:  labelW,
+        heightMm: labelH,
+        gapMm:    Number(btSettings.gapMm),
+        density:  Number(btSettings.density),
+        speed:    Number(btSettings.speed),
+        bitmaps:  payloads.map((p) => p.label.bitmap),
+      })
+
+      // ส่งทั้งชุดเป็นก้อนเดียว — แสดงความคืบหน้าเป็นจำนวนดวงโดยประมาณจากสัดส่วน byte
+      const total = selectedItems.length
+      setProgress({ phase: 'send', done: 0, total })
+      await writeToBluetoothPrinter(bytes, {
+        chunkSize: btSettings.chunkSize,
+        onProgress: (sent, all) => setProgress({ phase: 'send', done: Math.floor((sent / all) * total), total }),
+      })
+
+      // ส่งครบทุก byte แล้วถึงค่อย mark — ถ้าหลุดกลางทางจะโยน error ก่อนถึงตรงนี้
+      await api.patch('/items/print', { ids: selectedItems.map((i) => i.id) })
+      await fetchItems()
+      setSelected(new Set())
+      setMsg({ type: 'ok', text: `ส่งเข้า "${btPrinter.name}" แล้ว ${total} ดวง (${(bytes.length / 1024).toFixed(1)} KB)` })
+    } catch (err) {
+      setMsg({ type: 'err', text: `พิมพ์ไม่สำเร็จ: ${err.message}` })
+    } finally {
+      setPrinting(false)
+      setProgress(null)
+    }
+  }
+
   /* ---------- พิมพ์ผ่านเบราว์เซอร์ (ทางสำรอง) ---------- */
 
   const handlePrintBrowser = async () => {
@@ -281,99 +399,206 @@ export default function Print() {
     <div className="flex flex-col gap-3">
       <h1 className="text-base font-semibold text-gray-800">Print QR Label</h1>
 
+      {/* เลือกวิธีพิมพ์ */}
+      <div className="grid grid-cols-2 gap-2">
+        {[
+          { value: 'bluetooth', label: '🔵 Bluetooth',   hint: 'มือถือ / แท็บเล็ต / เครื่องพกพา' },
+          { value: 'agent',     label: '🖨️ Print Agent', hint: 'คอมที่ต่อเครื่องพิมพ์ USB' },
+        ].map((m) => (
+          <button key={m.value} onClick={() => setMethod(m.value)}
+            className={`rounded-xl border px-3 py-2 text-left transition-colors ${method === m.value ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+            <div className="text-sm font-medium">{m.label}</div>
+            <div className="text-xs opacity-70">{m.hint}</div>
+          </button>
+        ))}
+      </div>
+
+      {/* Bluetooth */}
+      {method === 'bluetooth' && (
+        <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex flex-col gap-3">
+          {btUnsupported ? (
+            <div className="text-xs text-amber-600">⚠ {btUnsupported} · ยังใช้ปุ่ม "ปริ้นผ่าน Browser" ได้</div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`text-xs px-3 py-1.5 rounded-lg font-medium ${btPrinter ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
+                  🔵 {btPrinter ? `${btPrinter.name}: พร้อม ✅` : 'ยังไม่ได้เชื่อมต่อ'}
+                </span>
+                {btPrinter ? (
+                  <>
+                    <button onClick={handleBtSelfTest} disabled={btBusy || printing}
+                      className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50">
+                      ทดสอบพิมพ์
+                    </button>
+                    <button onClick={handleBtDisconnect} disabled={printing}
+                      className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50">
+                      ตัดการเชื่อมต่อ
+                    </button>
+                  </>
+                ) : (
+                  <button onClick={handleBtConnect} disabled={btBusy}
+                    className="text-xs px-3 py-1.5 rounded-lg bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50">
+                    {btBusy ? 'กำลังเชื่อมต่อ...' : 'ค้นหาเครื่องพิมพ์'}
+                  </button>
+                )}
+                <button onClick={() => setShowConfig((v) => !v)}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">
+                  ⚙️ ตั้งค่า
+                </button>
+              </div>
+
+              {!btPrinter && (
+                <div className="text-xs text-gray-400">
+                  เปิดเครื่องพิมพ์และเปิด Bluetooth ของมือถือก่อน แล้วกด "ค้นหาเครื่องพิมพ์" เลือกชื่อเครื่องจากรายการ
+                  {' '}(ไม่ต้องจับคู่ในหน้าตั้งค่า Bluetooth ของมือถือ)
+                </div>
+              )}
+
+              {showConfig && (
+                <div className="border-t border-gray-100 pt-3 flex flex-col gap-3">
+                  <div className="flex flex-wrap gap-3">
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs text-gray-400">ภาษาเครื่องพิมพ์</span>
+                      <select value={btSettings.protocol} onChange={(e) => updateBtSetting({ protocol: e.target.value })}
+                        className="h-8 px-2 text-sm rounded-lg border border-gray-200 bg-white text-gray-600 max-w-full">
+                        {PROTOCOLS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+                      </select>
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs text-gray-400">ขนาดก้อนข้อมูล (byte)</span>
+                      <input type="number" min="20" max="512" value={btSettings.chunkSize}
+                        onChange={(e) => updateBtSetting({ chunkSize: Number(e.target.value) })}
+                        className="w-24 h-8 px-2 text-sm rounded-lg border border-gray-200 focus:outline-none text-center" />
+                    </label>
+                  </div>
+                  {btSettings.protocol === 'tspl' && (
+                    <div className="flex flex-wrap gap-3">
+                      <label className="flex flex-col gap-1">
+                        <span className="text-xs text-gray-400">ความเข้ม (0-15)</span>
+                        <input type="number" min="0" max="15" value={btSettings.density}
+                          onChange={(e) => updateBtSetting({ density: Number(e.target.value) })}
+                          className="w-20 h-8 px-2 text-sm rounded-lg border border-gray-200 focus:outline-none text-center" />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        <span className="text-xs text-gray-400">ความเร็ว (1-6)</span>
+                        <input type="number" min="1" max="6" value={btSettings.speed}
+                          onChange={(e) => updateBtSetting({ speed: Number(e.target.value) })}
+                          className="w-20 h-8 px-2 text-sm rounded-lg border border-gray-200 focus:outline-none text-center" />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        <span className="text-xs text-gray-400">ระยะห่างฉลาก (mm)</span>
+                        <input type="number" min="0" max="10" step="0.5" value={btSettings.gapMm}
+                          onChange={(e) => updateBtSetting({ gapMm: Number(e.target.value) })}
+                          className="w-24 h-8 px-2 text-sm rounded-lg border border-gray-200 focus:outline-none text-center" />
+                      </label>
+                    </div>
+                  )}
+                  <div className="text-xs text-gray-400">
+                    ถ้าพิมพ์แล้วไม่มีอะไรออก ลองสลับภาษาเครื่องพิมพ์ · ถ้าออกมาแหว่ง/ขาดกลางดวง ลดขนาดก้อนข้อมูลเหลือ 20
+                    {btSettings.protocol === 'escpos' && ' · เครื่องม้วน 58 mm พิมพ์กว้างได้ไม่เกิน 48 mm'}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       {/* สถานะ Print Agent */}
-      <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-xs px-3 py-1.5 rounded-lg font-medium ${statusConfig.className}`}>
-              🖨️ {statusConfig.label}
-            </span>
-            <button onClick={reconnectAgent} disabled={agentStatus === 'checking'}
-              className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50">
-              เชื่อมต่อใหม่
-            </button>
-            <button onClick={() => setShowConfig((v) => !v)}
-              className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">
-              ⚙️ ตั้งค่า
-            </button>
-            {agentStatus === 'online' && (
-              <button onClick={handleSelfTest} disabled={!settings.printer}
+      {method === 'agent' && (
+        <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`text-xs px-3 py-1.5 rounded-lg font-medium ${statusConfig.className}`}>
+                🖨️ {statusConfig.label}
+              </span>
+              <button onClick={reconnectAgent} disabled={agentStatus === 'checking'}
                 className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50">
-                ทดสอบพิมพ์
+                เชื่อมต่อใหม่
               </button>
+              <button onClick={() => setShowConfig((v) => !v)}
+                className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">
+                ⚙️ ตั้งค่า
+              </button>
+              {agentStatus === 'online' && (
+                <button onClick={handleSelfTest} disabled={!settings.printer}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50">
+                  ทดสอบพิมพ์
+                </button>
+              )}
+            </div>
+
+            {agentStatus === 'online' && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400">เครื่องพิมพ์:</span>
+                <select value={settings.printer} onChange={(e) => updateSetting({ printer: e.target.value })}
+                  className="text-xs h-8 px-2 rounded-lg border border-gray-200 text-gray-600 max-w-52">
+                  <option value="">— เลือกเครื่องพิมพ์ —</option>
+                  {printers.map((p) => (
+                    <option key={p.name} value={p.name}>
+                      {p.name}{p.isDefault ? ' (ค่าเริ่มต้น)' : ''}{p.offline ? ' — ออฟไลน์' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
             )}
           </div>
 
-          {agentStatus === 'online' && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-400">เครื่องพิมพ์:</span>
-              <select value={settings.printer} onChange={(e) => updateSetting({ printer: e.target.value })}
-                className="text-xs h-8 px-2 rounded-lg border border-gray-200 text-gray-600 max-w-52">
-                <option value="">— เลือกเครื่องพิมพ์ —</option>
-                {printers.map((p) => (
-                  <option key={p.name} value={p.name}>
-                    {p.name}{p.isDefault ? ' (ค่าเริ่มต้น)' : ''}{p.offline ? ' — ออฟไลน์' : ''}
-                  </option>
-                ))}
-              </select>
+          {selectedPrinter?.errorState && (
+            <div className="text-xs text-amber-600">⚠ {selectedPrinter.name}: {selectedPrinter.errorState}</div>
+          )}
+
+          {agentStatus === 'offline' && !showConfig && (
+            <div className="text-xs text-gray-400">
+              ยังใช้ปุ่ม "ปริ้นผ่าน Browser" ได้ตามปกติ · วิธีติดตั้ง Agent ดูที่ <code className="text-gray-500">print-agent/README.md</code>
+            </div>
+          )}
+
+          {showConfig && (
+            <div className="border-t border-gray-100 pt-3 flex flex-col gap-3">
+              <div className="flex flex-wrap gap-3">
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs text-gray-400">Agent URL</span>
+                  <input type="text" value={settings.url} placeholder={DEFAULT_AGENT_URL}
+                    onChange={(e) => updateSetting({ url: e.target.value })}
+                    className="w-56 h-8 px-2 text-sm rounded-lg border border-gray-200 focus:outline-none" />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs text-gray-400">
+                    Token {agentInfo?.requiresToken === false && <span className="text-gray-300">(agent ไม่ได้ตั้งไว้)</span>}
+                  </span>
+                  <input type="password" value={settings.token} autoComplete="off"
+                    onChange={(e) => updateSetting({ token: e.target.value })}
+                    className="w-56 h-8 px-2 text-sm rounded-lg border border-gray-200 focus:outline-none" />
+                </label>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs text-gray-400">ความเข้ม (0-15)</span>
+                  <input type="number" min="0" max="15" value={settings.density}
+                    onChange={(e) => updateSetting({ density: Number(e.target.value) })}
+                    className="w-20 h-8 px-2 text-sm rounded-lg border border-gray-200 focus:outline-none text-center" />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs text-gray-400">ความเร็ว (1-6)</span>
+                  <input type="number" min="1" max="6" value={settings.speed}
+                    onChange={(e) => updateSetting({ speed: Number(e.target.value) })}
+                    className="w-20 h-8 px-2 text-sm rounded-lg border border-gray-200 focus:outline-none text-center" />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs text-gray-400">ระยะห่างฉลาก (mm)</span>
+                  <input type="number" min="0" max="10" step="0.5" value={settings.gapMm}
+                    onChange={(e) => updateSetting({ gapMm: Number(e.target.value) })}
+                    className="w-24 h-8 px-2 text-sm rounded-lg border border-gray-200 focus:outline-none text-center" />
+                </label>
+              </div>
+              <div className="text-xs text-gray-400">
+                ค่าพวกนี้เก็บไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น · token ต้องตรงกับที่ตั้งใน <code className="text-gray-500">print-agent/config.json</code>
+              </div>
             </div>
           )}
         </div>
-
-        {selectedPrinter?.errorState && (
-          <div className="text-xs text-amber-600">⚠ {selectedPrinter.name}: {selectedPrinter.errorState}</div>
-        )}
-
-        {agentStatus === 'offline' && !showConfig && (
-          <div className="text-xs text-gray-400">
-            ยังใช้ปุ่ม "ปริ้นผ่าน Browser" ได้ตามปกติ · วิธีติดตั้ง Agent ดูที่ <code className="text-gray-500">print-agent/README.md</code>
-          </div>
-        )}
-
-        {showConfig && (
-          <div className="border-t border-gray-100 pt-3 flex flex-col gap-3">
-            <div className="flex flex-wrap gap-3">
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-gray-400">Agent URL</span>
-                <input type="text" value={settings.url} placeholder={DEFAULT_AGENT_URL}
-                  onChange={(e) => updateSetting({ url: e.target.value })}
-                  className="w-56 h-8 px-2 text-sm rounded-lg border border-gray-200 focus:outline-none" />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-gray-400">
-                  Token {agentInfo?.requiresToken === false && <span className="text-gray-300">(agent ไม่ได้ตั้งไว้)</span>}
-                </span>
-                <input type="password" value={settings.token} autoComplete="off"
-                  onChange={(e) => updateSetting({ token: e.target.value })}
-                  className="w-56 h-8 px-2 text-sm rounded-lg border border-gray-200 focus:outline-none" />
-              </label>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-gray-400">ความเข้ม (0-15)</span>
-                <input type="number" min="0" max="15" value={settings.density}
-                  onChange={(e) => updateSetting({ density: Number(e.target.value) })}
-                  className="w-20 h-8 px-2 text-sm rounded-lg border border-gray-200 focus:outline-none text-center" />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-gray-400">ความเร็ว (1-6)</span>
-                <input type="number" min="1" max="6" value={settings.speed}
-                  onChange={(e) => updateSetting({ speed: Number(e.target.value) })}
-                  className="w-20 h-8 px-2 text-sm rounded-lg border border-gray-200 focus:outline-none text-center" />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-gray-400">ระยะห่างฉลาก (mm)</span>
-                <input type="number" min="0" max="10" step="0.5" value={settings.gapMm}
-                  onChange={(e) => updateSetting({ gapMm: Number(e.target.value) })}
-                  className="w-24 h-8 px-2 text-sm rounded-lg border border-gray-200 focus:outline-none text-center" />
-              </label>
-            </div>
-            <div className="text-xs text-gray-400">
-              ค่าพวกนี้เก็บไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น · token ต้องตรงกับที่ตั้งใน <code className="text-gray-500">print-agent/config.json</code>
-            </div>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* ขนาด Label */}
       <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex flex-wrap items-center gap-3">
@@ -512,11 +737,19 @@ export default function Print() {
             </div>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <button onClick={handlePrintAgent}
-              disabled={printing || agentStatus !== 'online' || !settings.printer}
-              className="px-4 h-10 text-sm rounded-xl bg-green-500 text-white hover:bg-green-600 disabled:opacity-50 font-medium">
-              {printing ? 'กำลังพิมพ์...' : '🖨️ พิมพ์ผ่าน Print Agent'}
-            </button>
+            {method === 'bluetooth' ? (
+              <button onClick={handlePrintBluetooth}
+                disabled={printing || !btPrinter}
+                className="px-4 h-10 text-sm rounded-xl bg-green-500 text-white hover:bg-green-600 disabled:opacity-50 font-medium">
+                {printing ? 'กำลังพิมพ์...' : '🔵 พิมพ์ผ่าน Bluetooth'}
+              </button>
+            ) : (
+              <button onClick={handlePrintAgent}
+                disabled={printing || agentStatus !== 'online' || !settings.printer}
+                className="px-4 h-10 text-sm rounded-xl bg-green-500 text-white hover:bg-green-600 disabled:opacity-50 font-medium">
+                {printing ? 'กำลังพิมพ์...' : '🖨️ พิมพ์ผ่าน Print Agent'}
+              </button>
+            )}
             <button onClick={handlePrintBrowser} disabled={printing}
               className="px-4 h-10 text-sm rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50">
               ปริ้นผ่าน Browser
@@ -526,7 +759,8 @@ export default function Print() {
       )}
 
       <div className="text-xs text-gray-400 pb-2">
-        * Print Agent = พิมพ์ตรงเข้าเครื่องพิมพ์ ไม่มีหน้าต่างเด้ง ต้องเปิดโปรแกรมไว้บนเครื่องที่ต่อเครื่องพิมพ์ ·
+        * Bluetooth = พิมพ์จากมือถือ/แท็บเล็ต Android หรือคอมด้วย Chrome/Edge (iPhone/iPad ใช้ไม่ได้) ·
+        Print Agent = พิมพ์ตรงเข้าเครื่องพิมพ์ ไม่มีหน้าต่างเด้ง ต้องเปิดโปรแกรมไว้บนเครื่องที่ต่อเครื่องพิมพ์ ·
         Browser = ใช้ได้ทุกเครื่องแต่ต้องกดยืนยันใน print dialog
       </div>
     </div>

@@ -39,14 +39,14 @@ export default function SummaryCards({ summary }) {
             💰 ยอดเบิกจ่ายรวมรายสินค้า
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-xs">
+            <table className="w-full min-w-[480px] border-collapse text-xs">
               <thead>
                 <tr className="border-b border-gray-100">
-                  <th className="pb-2 text-left text-gray-400 font-medium">MatUID</th>
-                  <th className="pb-2 text-left text-gray-400 font-medium">ชื่อสินค้า</th>
-                  <th className="pb-2 text-right text-gray-400 font-medium">จำนวนเบิก</th>
-                  <th className="pb-2 text-right text-gray-400 font-medium">มูลค่ารวม (บาท)</th>
-                  <th className="pb-2 text-right text-gray-400 font-medium">% ของทั้งหมด</th>
+                  <th className="pb-2 pr-3 whitespace-nowrap text-left text-gray-400 font-medium">MatUID</th>
+                  <th className="pb-2 pr-3 whitespace-nowrap text-left text-gray-400 font-medium">ชื่อสินค้า</th>
+                  <th className="pb-2 pr-3 whitespace-nowrap text-right text-gray-400 font-medium">จำนวนเบิก</th>
+                  <th className="pb-2 pr-3 whitespace-nowrap text-right text-gray-400 font-medium">มูลค่ารวม (บาท)</th>
+                  <th className="pb-2 pr-3 whitespace-nowrap text-right text-gray-400 font-medium">% ของทั้งหมด</th>
                 </tr>
               </thead>
               <tbody>
@@ -56,13 +56,13 @@ export default function SummaryCards({ summary }) {
                     : 0
                   return (
                     <tr key={i} className="border-b border-gray-50 hover:bg-gray-50">
-                      <td className="py-2 text-gray-500 whitespace-nowrap">{p.mat_uid}</td>
-                      <td className="py-2 text-gray-700 font-medium whitespace-nowrap">{p.product_name}</td>
-                      <td className="py-2 text-gray-500 text-right whitespace-nowrap">{p.total_qty} ชิ้น</td>
-                      <td className="py-2 text-gray-700 font-semibold text-right whitespace-nowrap">
+                      <td className="py-2 pr-3 text-gray-500 whitespace-nowrap">{p.mat_uid}</td>
+                      <td className="py-2 pr-3 text-gray-700 font-medium whitespace-nowrap">{p.product_name}</td>
+                      <td className="py-2 pr-3 text-gray-500 text-right whitespace-nowrap">{p.total_qty} ชิ้น</td>
+                      <td className="py-2 pr-3 text-gray-700 font-semibold text-right whitespace-nowrap">
                         {Number(p.total_cost).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="py-2 text-right whitespace-nowrap">
+                      <td className="py-2 pr-3 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-2">
                           <div className="w-16 h-2 bg-gray-100 rounded-full overflow-hidden">
                             <div className="h-full bg-blue-400 rounded-full" style={{ width: `${pct}%` }} />

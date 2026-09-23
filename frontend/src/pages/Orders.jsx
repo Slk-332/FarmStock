@@ -140,9 +140,9 @@ export default function Orders() {
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <h1 className="text-base font-semibold text-gray-800">ใบสั่งซื้อ</h1>
-        <div className="sm:ml-auto flex gap-2">
+        <div className="sm:ml-auto flex flex-wrap gap-2">
           <input value={search} onChange={e => setSearch(e.target.value)}
-            className="h-9 px-3 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-blue-400 bg-white"
+            className="h-9 px-3 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-blue-400 bg-white basis-full sm:basis-auto min-w-0"
             placeholder="ค้นหาเลขที่ / ผู้จำหน่าย" />
           <select value={status} onChange={e => setStatus(e.target.value)}
             className="h-9 px-3 text-sm rounded-xl border border-gray-200 bg-white text-gray-700">

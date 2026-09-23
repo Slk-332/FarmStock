@@ -100,12 +100,13 @@ export default function Layout() {
       {/* ===== Desktop Navbar ===== */}
       <nav ref={navRef}
         className="bg-white border-b border-gray-200 px-4 h-11 items-center gap-1 sticky top-0 z-50 hidden md:flex">
-        <span className="text-sm font-semibold text-gray-800 mr-3">🌱 FarmStock</span>
+        {/* แท็บเล็ต (768–1023px) ที่ไม่พอ ย่อโลโก้/ชื่อผู้ใช้/ปุ่มออก เหลือแค่ไอคอน */}
+        <span className="text-sm font-semibold text-gray-800 mr-2 lg:mr-3 whitespace-nowrap">🌱<span className="hidden lg:inline"> FarmStock</span></span>
 
         {groups.map(group => group.to ? (
           <NavLink key={group.to} to={group.to} end={group.to === '/'}
             className={({ isActive }) =>
-              `text-xs px-3 py-1.5 rounded-md border transition-colors ${
+              `text-xs px-2.5 lg:px-3 py-1.5 rounded-md border whitespace-nowrap transition-colors ${
                 isActive ? 'bg-blue-50 text-blue-600 border-blue-200'
                          : 'border-gray-200 text-gray-500 hover:bg-gray-50'
               }`
@@ -118,7 +119,7 @@ export default function Layout() {
         ) : (
           <div key={group.label} className="relative">
             <button onClick={() => setOpenGroup(openGroup === group.label ? null : group.label)}
-              className={`text-xs px-3 py-1.5 rounded-md border transition-colors ${
+              className={`text-xs px-2.5 lg:px-3 py-1.5 rounded-md border whitespace-nowrap transition-colors ${
                 isGroupActive(group) ? 'bg-blue-50 text-blue-600 border-blue-200'
                                      : 'border-gray-200 text-gray-500 hover:bg-gray-50'
               }`}>
@@ -143,14 +144,15 @@ export default function Layout() {
           </div>
         ))}
 
-        <div className="ml-auto flex items-center gap-3">
-          <span className="text-xs text-gray-500">{user?.full_name}</span>
-          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${user?.role === 'admin' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+        <div className="ml-auto flex items-center gap-2 lg:gap-3">
+          <span className="text-xs text-gray-500 hidden lg:inline truncate max-w-40">{user?.full_name}</span>
+          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium hidden lg:inline ${user?.role === 'admin' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
             {user?.role}
           </span>
-          <button onClick={handleLogout}
-            className="text-xs px-3 py-1.5 rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50">
-            ออกจากระบบ
+          <button onClick={handleLogout} title={`ออกจากระบบ (${user?.full_name || ''})`}
+            className="text-xs px-2.5 lg:px-3 py-1.5 rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 whitespace-nowrap">
+            <span className="lg:hidden">🚪</span>
+            <span className="hidden lg:inline">ออกจากระบบ</span>
           </button>
         </div>
       </nav>
@@ -159,7 +161,7 @@ export default function Layout() {
       <nav className="bg-white border-b border-gray-200 px-4 h-12 flex items-center justify-between sticky top-0 z-50 md:hidden">
         <span className="text-sm font-semibold text-gray-800">🌱 FarmStock</span>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">{user?.full_name}</span>
+          <span className="text-xs text-gray-500 truncate max-w-40">{user?.full_name}</span>
           <button onClick={() => setMenuOpen(!menuOpen)}
             className="p-2 rounded-lg border border-gray-200 text-gray-500">
             {menuOpen ? '✕' : '☰'}

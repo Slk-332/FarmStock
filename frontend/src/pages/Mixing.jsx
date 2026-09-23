@@ -156,7 +156,7 @@ export default function Mixing() {
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <h1 className="text-base font-semibold text-gray-800">ใบสั่งผลิต</h1>
-        <div className="sm:ml-auto flex gap-2">
+        <div className="sm:ml-auto flex flex-wrap gap-2">
           <select value={status} onChange={e => setStatus(e.target.value)}
             className="h-9 px-3 text-sm rounded-xl border border-gray-200 bg-white text-gray-700">
             <option value="">ทุกสถานะ</option>

@@ -134,9 +134,9 @@ export default function Formulas() {
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <h1 className="text-base font-semibold text-gray-800">สูตรผสม</h1>
-        <div className="sm:ml-auto flex gap-2">
+        <div className="sm:ml-auto flex flex-wrap gap-2">
           <input value={search} onChange={e => setSearch(e.target.value)}
-            className="h-9 px-3 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-blue-400 bg-white"
+            className="h-9 px-3 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-blue-400 bg-white basis-full sm:basis-auto min-w-0"
             placeholder="ค้นหารหัส / ชื่อสูตร / GTF" />
           <button onClick={openCreate}
             className="h-9 px-4 text-sm rounded-xl bg-blue-500 text-white hover:bg-blue-600 whitespace-nowrap">

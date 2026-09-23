@@ -155,7 +155,7 @@ export default function Sales() {
         <h1 className="text-base font-semibold text-gray-800">การขาย</h1>
         <div className="sm:ml-auto flex flex-wrap gap-2">
           <input value={filter.search} onChange={e => setFilter({ ...filter, search: e.target.value })}
-            className="h-9 px-3 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-blue-400 bg-white"
+            className="h-9 px-3 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-blue-400 bg-white basis-full sm:basis-auto min-w-0"
             placeholder="ค้นหาเลขที่ / ลูกค้า" />
           <select value={filter.status} onChange={e => setFilter({ ...filter, status: e.target.value })}
             className="h-9 px-3 text-sm rounded-xl border border-gray-200 bg-white text-gray-700">

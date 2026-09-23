@@ -216,7 +216,7 @@ export default function Planting() {
         <h1 className="text-base font-semibold text-gray-800">แปลงปลูก</h1>
         <div className="sm:ml-auto flex flex-wrap gap-2">
           <input value={filter.search} onChange={e => setFilter({ ...filter, search: e.target.value })}
-            className="h-9 px-3 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-blue-400 bg-white"
+            className="h-9 px-3 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-blue-400 bg-white basis-full sm:basis-auto min-w-0"
             placeholder="ค้นหาแปลง / พืช" />
           <select value={filter.area_id} onChange={e => setFilter({ ...filter, area_id: e.target.value })}
             className="h-9 px-3 text-sm rounded-xl border border-gray-200 bg-white text-gray-700">
