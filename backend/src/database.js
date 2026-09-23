@@ -20,10 +20,13 @@ const dbConfig = connectionString ? {
   password: process.env.DB_PASSWORD,
 }
 
-const pool = new Pool({
+// config เดียวกันนี้ถูกใช้ทั้งโดย pool ของแอป และโดย scripts/migrate.js
+const connectionConfig = {
   ...dbConfig,
   ssl: useSSL ? { rejectUnauthorized: false } : false,
-})
+}
+
+const pool = new Pool(connectionConfig)
 
 const getDatabaseInfo = () => ({
   env: process.env.DATABASE_URL ? 'DATABASE_URL' : process.env.DIRECT_URL ? 'DIRECT_URL' : 'DB_*',
@@ -40,4 +43,4 @@ pool.on('error', (err) => {
   console.error('❌ PostgreSQL error:', err)
 })
 
-module.exports = { pool, getDatabaseInfo }
+module.exports = { pool, connectionConfig, getDatabaseInfo }
