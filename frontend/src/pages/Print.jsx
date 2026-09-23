@@ -1,342 +1,470 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import api from '../api/axios'
-import QRCode from 'qrcode'
-import qz from 'qz-tray'
+import { buildLabelPayload, renderLabelCanvas } from '../lib/labelRender'
+import { printViaBrowser } from '../lib/browserPrint'
+import {
+  getAgentSettings, saveAgentSettings, checkAgent,
+  fetchPrinters, selfTest, sendPrintJob, DEFAULT_AGENT_URL,
+} from '../lib/printAgent'
 
-const PRINTER_NAME = 'Xprinter XP-420B'
+const SIZE_PRESETS = [[40, 20], [50, 40], [60, 40], [80, 50], [100, 70]]
+const RENDER_CHUNK = 10 // เรนเดอร์ทีละกี่ดวงก่อนคืน event loop ให้ UI ไม่ค้าง
 
 export default function Print() {
-  const [items,      setItems]      = useState([])
-  const [search,     setSearch]     = useState('')
-  const [loading,    setLoading]    = useState(true)
-  const [selected,   setSelected]   = useState(new Set())
-  const [expanded,   setExpanded]   = useState(new Set())
-  const [printing,   setPrinting]   = useState(false)
-  const [labelW,     setLabelW]     = useState(40)
-  const [labelH,     setLabelH]     = useState(20)
-  const [qzStatus,   setQzStatus]   = useState('disconnected') // disconnected | connecting | connected | error
-  const printRef = useRef()
+  const [items,    setItems]    = useState([])
+  const [search,   setSearch]   = useState('')
+  const [loading,  setLoading]  = useState(true)
+  const [selected, setSelected] = useState(new Set())
+  const [expanded, setExpanded] = useState(new Set())
 
- const isConnecting = useRef(false)
+  const [labelW, setLabelW] = useState(40)
+  const [labelH, setLabelH] = useState(20)
 
-useEffect(() => {
-  // delay นิดนึงให้ component mount เสร็จก่อน
-  const timer = setTimeout(() => {
-    connectQZ()
-  }, 1000)
-  return () => {
-    clearTimeout(timer)
-  }
-}, [])
+  const [settings,    setSettings]    = useState(getAgentSettings)
+  const [agentStatus, setAgentStatus] = useState('checking') // checking | online | offline
+  const [agentInfo,   setAgentInfo]   = useState(null)
+  const [printers,    setPrinters]    = useState([])
+  const [showConfig,  setShowConfig]  = useState(false)
 
-const connectQZ = async () => {
-  // ป้องกัน connect ซ้ำ
-  if (isConnecting.current) return
-  isConnecting.current = true
+  const [printing, setPrinting] = useState(false)
+  const [progress, setProgress] = useState(null)
+  const [msg,      setMsg]      = useState(null) // { type: 'ok'|'err'|'info', text }
 
-  try {
-    setQzStatus('connecting')
+  const previewRef = useRef(null)
 
-    qz.security.setCertificatePromise((resolve) => resolve())
-    qz.security.setSignaturePromise(() => (resolve) => resolve())
+  /* ---------- ข้อมูล item ---------- */
 
-    // ถ้า active อยู่แล้วไม่ต้อง connect ใหม่
-    if (qz.websocket.isActive()) {
-      setQzStatus('connected')
-      isConnecting.current = false
-      return
-    }
-
-    await qz.websocket.connect()
-    setQzStatus('connected')
-  } catch (err) {
-    console.error('QZ Tray error:', err)
-    setQzStatus('error')
-  } finally {
-    isConnecting.current = false
-  }
-}
-  const fetchItems = async () => {
+  const fetchItems = useCallback(async () => {
     try {
       setLoading(true)
       const res = await api.get('/items', { params: { search } })
       setItems(res.data)
-    } catch {}
-    finally { setLoading(false) }
-  }
+    } catch {
+      setMsg({ type: 'err', text: 'โหลดรายการไม่สำเร็จ' })
+    } finally {
+      setLoading(false)
+    }
+  }, [search])
 
   useEffect(() => {
     const delay = setTimeout(fetchItems, 300)
     return () => clearTimeout(delay)
-  }, [search])
+  }, [fetchItems])
 
-  const groupedByLot = items.reduce((acc, item) => {
+  /* ---------- Print Agent ---------- */
+
+  const connectAgent = useCallback(async (override) => {
+    const cfg = override || settings
+    try {
+      const health = await checkAgent(cfg)
+      setAgentInfo(health)
+      setAgentStatus('online')
+
+      const list = await fetchPrinters(cfg)
+      setPrinters(list.printers || [])
+
+      // ถ้ายังไม่ได้เลือกเครื่องพิมพ์ ใช้ค่าจาก agent หรือเครื่องที่ Windows ตั้งเป็น default
+      if (!cfg.printer) {
+        const fallback = health.defaultPrinter
+          || list.printers?.find((p) => p.isDefault)?.name
+          || list.printers?.[0]?.name
+        if (fallback) setSettings(saveAgentSettings({ printer: fallback }))
+      }
+      return true
+    } catch (err) {
+      setAgentStatus('offline')
+      setAgentInfo(null)
+      setPrinters([])
+      setMsg({ type: 'info', text: err.message })
+      return false
+    }
+  }, [settings])
+
+  /** ปุ่ม "เชื่อมต่อใหม่" — ต่างจาก connectAgent ตรงที่กลับไปขึ้นสถานะ "กำลังตรวจสอบ" ก่อน */
+  const reconnectAgent = () => {
+    setAgentStatus('checking')
+    connectAgent()
+  }
+
+  useEffect(() => {
+    // เช็คครั้งเดียวตอนเข้าหน้า — หลังจากนั้นผู้ใช้กดปุ่มเชื่อมต่อใหม่เอง
+    // (สถานะเริ่มต้นเป็น 'checking' อยู่แล้ว จึงไม่ต้อง setState ตรงนี้)
+    connectAgent()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const updateSetting = (patch) => setSettings(saveAgentSettings(patch))
+
+  /* ---------- เลือก item ---------- */
+
+  const groupedByLot = useMemo(() => items.reduce((acc, item) => {
     const key = item.lot_id
-    if (!acc[key]) acc[key] = { lot_no: item.lot_no, product_name: item.product_name, mat_uid: item.mat_uid, created_at: item.created_at, items: [] }
+    if (!acc[key]) acc[key] = { lot_no: item.lot_no, product_name: item.product_name, mat_uid: item.mat_uid, items: [] }
     acc[key].items.push(item)
     return acc
-  }, {})
+  }, {}), [items])
 
-  const toggleLot = (lotId, lotItems) => {
-    const newSel = new Set(selected)
-    const allSelected = lotItems.every(i => newSel.has(i.id))
-    lotItems.forEach(i => allSelected ? newSel.delete(i.id) : newSel.add(i.id))
-    setSelected(newSel)
+  const selectedItems = useMemo(() => items.filter((i) => selected.has(i.id)), [items, selected])
+
+  const toggleLot = (lotItems) => {
+    const next = new Set(selected)
+    const allSelected = lotItems.every((i) => next.has(i.id))
+    lotItems.forEach((i) => (allSelected ? next.delete(i.id) : next.add(i.id)))
+    setSelected(next)
   }
 
   const toggleItem = (id) => {
-    const newSel = new Set(selected)
-    newSel.has(id) ? newSel.delete(id) : newSel.add(id)
-    setSelected(newSel)
+    const next = new Set(selected)
+    next.has(id) ? next.delete(id) : next.add(id)
+    setSelected(next)
   }
 
   const toggleExpand = (lotId) => {
-    const newExp = new Set(expanded)
-    newExp.has(lotId) ? newExp.delete(lotId) : newExp.add(lotId)
-    setExpanded(newExp)
+    const next = new Set(expanded)
+    next.has(lotId) ? next.delete(lotId) : next.add(lotId)
+    setExpanded(next)
   }
 
-  const selectAll = () => setSelected(new Set(items.map(i => i.id)))
+  const selectAll = () => setSelected(new Set(items.map((i) => i.id)))
   const clearAll  = () => setSelected(new Set())
-  const selectedItems = items.filter(i => selected.has(i.id))
 
-  // ปริ้นผ่าน QZ Tray
-  const handlePrintQZ = async () => {
-    if (selectedItems.length === 0) return
-    if (qzStatus !== 'connected') {
-      alert('QZ Tray ยังไม่ได้เชื่อมต่อ กรุณาเปิด QZ Tray ก่อน')
+  /* ---------- preview ---------- */
+
+  const scanUrlFor = (item) => `${window.location.origin}/scan/${item.item_id}`
+
+  const [previewInfo, setPreviewInfo] = useState(null)
+
+  useEffect(() => {
+    const item = selectedItems[0]
+    const canvas = previewRef.current
+    if (!item || !canvas) {
+      setPreviewInfo(null)
       return
     }
-    setPrinting(true)
     try {
-      const config = qz.configs.create(PRINTER_NAME, {
-        size:        { width: labelW, height: labelH },
-        units:       'mm',
-        colorType:   'blackwhite',
-        duplex:      false,
-        margins:     { top: 0, right: 0, bottom: 0, left: 0 },
+      const { qr, widthDots, heightDots } = renderLabelCanvas(item, {
+        widthMm: labelW, heightMm: labelH, scanUrl: scanUrlFor(item), canvas,
       })
-
-      for (const item of selectedItems) {
-        const url = `${window.location.origin}/scan/${item.item_id}`
-        const qr  = await QRCode.toDataURL(url, { width: 300, margin: 1 })
-
-        // สร้าง HTML label
-        const labelHtml = `
-  <html><head>
-  <style>
-    /* 1. รีเซ็ตขอบหน้ากระดาษตอนปริ้นให้ออกมาพอดี */
-    @page {
-      margin: 0;
-      size: ${labelW}mm ${labelH}mm; 
-    }
-    
-    * { margin:0; padding:0; box-sizing:border-box; }
-    
-    body {
-  width: ${labelW}mm; 
-  height: ${labelH}mm;
-  font-family: sans-serif;
-  
-  /* แก้ตรงนี้: บน 1.5, ขวา 1.5, ล่าง 1.5, ซ้าย 4 */
-  padding: 1.5mm 1.5mm 1.5mm 4mm; 
-  
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 2mm;
-  overflow: hidden;
-}
-    
-    .info { flex:1; display:flex; flex-direction:column; gap:0.5mm; overflow:hidden; }
-    .name  { font-size:7pt; font-weight:bold; line-height:1.2; }
-    .uid   { font-size:5.5pt; color:#444; }
-    .lot   { font-size:5pt; color:#555; }
-    .dates { font-size:4.5pt; color:#666; line-height:1.3; }
-    .qr img { width:${labelH - 3}mm; height:${labelH - 3}mm; display:block; }
-  </style></head>
-  <body>
-    <div class="info">
-      <div class="name">${item.product_name}</div>
-      <div class="uid">${item.mat_uid}</div>
-      <div class="lot">Lot: ${item.lot_no}</div>
-      <div class="dates">
-        ผลิต: ${new Date(item.mfg_date).toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit',year:'2-digit'})}<br/>
-        หมด: ${new Date(item.exp_date).toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit',year:'2-digit'})}
-      </div>
-    </div>
-    <div class="qr"><img src="${qr}" /></div>
-  </body></html>
-`
-
-        const data = [{ type: 'pixel', format: 'html', flavor: 'plain', data: labelHtml }]
-        await qz.print(config, data)
-      }
-
-      // อัปเดต print status
-      await api.patch('/items/print', { ids: selectedItems.map(i => i.id) })
-      await fetchItems()
-      setSelected(new Set())
-      alert(`ปริ้นสำเร็จ ${selectedItems.length} แผ่น`)
-    } catch (err) {
-      console.error(err)
-      alert('ปริ้นไม่สำเร็จ: ' + err.message)
-    } finally {
-      setPrinting(false)
-    }
-  }
-
-  // ปริ้นแบบ browser fallback (กรณี QZ ไม่ได้เชื่อมต่อ)
-  const handlePrintBrowser = async () => {
-    if (selectedItems.length === 0) return
-    setPrinting(true)
-    try {
-      const qrDataList = await Promise.all(
-        selectedItems.map(async (item) => {
-          const url = `${window.location.origin}/scan/${item.item_id}`
-          const qr  = await QRCode.toDataURL(url, { width: 200, margin: 1 })
-          return { ...item, qr }
-        })
-      )
-      const printWin = window.open('', '_blank')
-      printWin.document.write(`
-        <html><head><title>FarmStock Labels</title>
-        <style>
-          * { margin:0; padding:0; box-sizing:border-box; }
-          body { font-family:sans-serif; }
-          .label {
-            width:${labelW}mm; height:${labelH}mm; padding:3mm;
-            display:inline-flex; flex-direction:column; justify-content:space-between;
-            border:0.5px solid #eee; page-break-inside:avoid; vertical-align:top;
-          }
-          .name  { font-size:${Math.max(7,labelW*0.18)}pt; font-weight:bold; }
-          .uid   { font-size:${Math.max(6,labelW*0.14)}pt; color:#555; }
-          .lot   { font-size:${Math.max(6,labelW*0.14)}pt; color:#555; }
-          .dates { font-size:${Math.max(5,labelW*0.12)}pt; color:#777; }
-          .qr    { text-align:center; }
-          .qr img { width:${Math.min(labelW*0.55,labelH*0.55)}mm; height:${Math.min(labelW*0.55,labelH*0.55)}mm; }
-          @media print { body { margin:0; } .label { border:none; } }
-        </style></head><body>
-        ${qrDataList.map(item=>`
-          <div class="label">
-            <div>
-              <div class="name">${item.product_name}</div>
-              <div class="uid">${item.mat_uid}</div>
-              <div class="lot">Lot: ${item.lot_no} | ${item.item_id.split('-').pop()}</div>
-              <div class="dates">
-                ผลิต: ${new Date(item.mfg_date).toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit',year:'2-digit'})}
-                หมด: ${new Date(item.exp_date).toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit',year:'2-digit'})}
-              </div>
-            </div>
-            <div class="qr"><img src="${item.qr}" /></div>
-          </div>
-        `).join('')}
-        </body></html>
-      `)
-      printWin.document.close()
-      printWin.focus()
-      setTimeout(() => { printWin.print(); printWin.close() }, 500)
-      await api.patch('/items/print', { ids: selectedItems.map(i => i.id) })
-      await fetchItems()
-      setSelected(new Set())
+      setPreviewInfo({ qr, widthDots, heightDots, itemId: item.item_id })
     } catch {
-      alert('ปริ้นไม่สำเร็จ กรุณาลองใหม่')
+      setPreviewInfo(null)
+    }
+  }, [selectedItems, labelW, labelH])
+
+  /* ---------- เรนเดอร์ฉลากทั้งชุด ---------- */
+
+  const renderAll = async (list) => {
+    const payloads = []
+    for (let i = 0; i < list.length; i++) {
+      payloads.push(buildLabelPayload(list[i], {
+        widthMm: labelW, heightMm: labelH, scanUrl: scanUrlFor(list[i]),
+      }))
+      if (i % RENDER_CHUNK === RENDER_CHUNK - 1) {
+        setProgress({ phase: 'render', done: i + 1, total: list.length })
+        await new Promise((r) => setTimeout(r, 0)) // คืน event loop ให้ UI วาดได้
+      }
+    }
+    return payloads
+  }
+
+  /* ---------- พิมพ์ผ่าน agent ---------- */
+
+  const handlePrintAgent = async () => {
+    if (!selectedItems.length || printing) return
+    if (agentStatus !== 'online') {
+      setMsg({ type: 'err', text: 'Print Agent ยังไม่ได้เชื่อมต่อ' })
+      return
+    }
+    if (!settings.printer) {
+      setMsg({ type: 'err', text: 'ยังไม่ได้เลือกเครื่องพิมพ์' })
+      return
+    }
+
+    setPrinting(true)
+    setMsg(null)
+    try {
+      const payloads = await renderAll(selectedItems)
+
+      setProgress({ phase: 'send', done: 0, total: selectedItems.length })
+      const res = await sendPrintJob({
+        printer:  settings.printer,
+        widthMm:  labelW,
+        heightMm: labelH,
+        gapMm:    Number(settings.gapMm),
+        density:  Number(settings.density),
+        speed:    Number(settings.speed),
+        labels:   payloads.map((p) => p.label),
+      }, settings)
+
+      // mark เฉพาะ id ที่อยู่ในงานที่ spooler รับไปจริง ๆ
+      const printedIds = res.printedIds || []
+      if (printedIds.length) {
+        await api.patch('/items/print', { ids: printedIds })
+        await fetchItems()
+        setSelected(new Set())
+      }
+      setMsg({
+        type: 'ok',
+        text: `ส่งเข้าเครื่องพิมพ์ "${res.printer}" แล้ว ${printedIds.length} ดวง (${(res.bytesWritten / 1024).toFixed(1)} KB)`,
+      })
+    } catch (err) {
+      setMsg({ type: 'err', text: `พิมพ์ไม่สำเร็จ: ${err.message}` })
     } finally {
       setPrinting(false)
+      setProgress(null)
     }
   }
 
-  const fmt = (d) => d ? new Date(d).toLocaleDateString('th-TH', { day:'2-digit', month:'2-digit', year:'2-digit' }) : '-'
+  /* ---------- พิมพ์ผ่านเบราว์เซอร์ (ทางสำรอง) ---------- */
 
-  const qzStatusConfig = {
-    disconnected: { label: 'QZ Tray: ไม่ได้เชื่อมต่อ', className: 'bg-gray-100 text-gray-500', btn: 'เชื่อมต่อ' },
-    connecting:   { label: 'QZ Tray: กำลังเชื่อมต่อ...', className: 'bg-yellow-100 text-yellow-600', btn: null },
-    connected:    { label: 'QZ Tray: เชื่อมต่อแล้ว ✅', className: 'bg-green-100 text-green-600', btn: null },
-    error:        { label: 'QZ Tray: เชื่อมต่อไม่ได้ ❌', className: 'bg-red-100 text-red-500', btn: 'ลองใหม่' },
+  const handlePrintBrowser = async () => {
+    if (!selectedItems.length || printing) return
+
+    setPrinting(true)
+    setMsg(null)
+    try {
+      const payloads = await renderAll(selectedItems)
+      setProgress({ phase: 'dialog', done: 0, total: selectedItems.length })
+
+      await printViaBrowser(
+        payloads.map((p) => ({ dataUrl: p.canvas.toDataURL('image/png') })),
+        { widthMm: labelW, heightMm: labelH }
+      )
+
+      // เบราว์เซอร์ไม่บอกว่าผู้ใช้กดพิมพ์หรือกดยกเลิก จึงต้องถาม ไม่เดาเอาเอง
+      const confirmed = window.confirm(
+        `พิมพ์ออกมาครบ ${selectedItems.length} ดวงไหม?\n\nกด OK เพื่อบันทึกว่าพิมพ์แล้ว / กด Cancel ถ้ายกเลิกหรือพิมพ์ไม่ออก`
+      )
+      if (confirmed) {
+        await api.patch('/items/print', { ids: selectedItems.map((i) => i.id) })
+        await fetchItems()
+        setSelected(new Set())
+        setMsg({ type: 'ok', text: `บันทึกว่าพิมพ์แล้ว ${selectedItems.length} ดวง` })
+      } else {
+        setMsg({ type: 'info', text: 'ยังไม่ได้บันทึกสถานะการพิมพ์' })
+      }
+    } catch (err) {
+      setMsg({ type: 'err', text: `พิมพ์ไม่สำเร็จ: ${err.message}` })
+    } finally {
+      setPrinting(false)
+      setProgress(null)
+    }
   }
+
+  const handleSelfTest = async () => {
+    try {
+      setMsg({ type: 'info', text: 'กำลังส่งฉลากทดสอบ...' })
+      await selfTest(settings.printer, settings)
+      setMsg({ type: 'ok', text: 'ส่งฉลากทดสอบแล้ว — ดูที่เครื่องพิมพ์ว่ามีฉลาก "FarmStock OK" ออกมาไหม' })
+    } catch (err) {
+      setMsg({ type: 'err', text: `ทดสอบไม่สำเร็จ: ${err.message}` })
+    }
+  }
+
+  /* ---------- UI ---------- */
+
+  const statusConfig = {
+    checking: { label: 'กำลังตรวจสอบ...',    className: 'bg-yellow-100 text-yellow-600' },
+    online:   { label: 'Print Agent: พร้อม ✅', className: 'bg-green-100 text-green-600' },
+    offline:  { label: 'Print Agent: ไม่พบ ❌', className: 'bg-red-100 text-red-500' },
+  }[agentStatus]
+
+  const msgClass = {
+    ok:   'bg-green-50 border-green-200 text-green-700',
+    err:  'bg-red-50 border-red-200 text-red-600',
+    info: 'bg-blue-50 border-blue-200 text-blue-600',
+  }[msg?.type] || ''
+
+  const selectedPrinter = printers.find((p) => p.name === settings.printer)
 
   return (
     <div className="flex flex-col gap-3">
       <h1 className="text-base font-semibold text-gray-800">Print QR Label</h1>
 
-      {/* QZ Tray Status */}
-      <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <span className={`text-xs px-3 py-1.5 rounded-lg font-medium ${qzStatusConfig[qzStatus].className}`}>
-            🖨️ {qzStatusConfig[qzStatus].label}
-          </span>
-          {qzStatusConfig[qzStatus].btn && (
-            <button onClick={connectQZ}
-              className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">
-              {qzStatusConfig[qzStatus].btn}
+      {/* สถานะ Print Agent */}
+      <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`text-xs px-3 py-1.5 rounded-lg font-medium ${statusConfig.className}`}>
+              🖨️ {statusConfig.label}
+            </span>
+            <button onClick={reconnectAgent} disabled={agentStatus === 'checking'}
+              className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50">
+              เชื่อมต่อใหม่
             </button>
+            <button onClick={() => setShowConfig((v) => !v)}
+              className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">
+              ⚙️ ตั้งค่า
+            </button>
+            {agentStatus === 'online' && (
+              <button onClick={handleSelfTest} disabled={!settings.printer}
+                className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50">
+                ทดสอบพิมพ์
+              </button>
+            )}
+          </div>
+
+          {agentStatus === 'online' && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400">เครื่องพิมพ์:</span>
+              <select value={settings.printer} onChange={(e) => updateSetting({ printer: e.target.value })}
+                className="text-xs h-8 px-2 rounded-lg border border-gray-200 text-gray-600 max-w-52">
+                <option value="">— เลือกเครื่องพิมพ์ —</option>
+                {printers.map((p) => (
+                  <option key={p.name} value={p.name}>
+                    {p.name}{p.isDefault ? ' (ค่าเริ่มต้น)' : ''}{p.offline ? ' — ออฟไลน์' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
         </div>
-        <div className="text-xs text-gray-400">
-          Printer: <span className="font-medium text-gray-600">{PRINTER_NAME}</span>
-        </div>
+
+        {selectedPrinter?.errorState && (
+          <div className="text-xs text-amber-600">⚠ {selectedPrinter.name}: {selectedPrinter.errorState}</div>
+        )}
+
+        {agentStatus === 'offline' && !showConfig && (
+          <div className="text-xs text-gray-400">
+            ยังใช้ปุ่ม "ปริ้นผ่าน Browser" ได้ตามปกติ · วิธีติดตั้ง Agent ดูที่ <code className="text-gray-500">print-agent/README.md</code>
+          </div>
+        )}
+
+        {showConfig && (
+          <div className="border-t border-gray-100 pt-3 flex flex-col gap-3">
+            <div className="flex flex-wrap gap-3">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-gray-400">Agent URL</span>
+                <input type="text" value={settings.url} placeholder={DEFAULT_AGENT_URL}
+                  onChange={(e) => updateSetting({ url: e.target.value })}
+                  className="w-56 h-8 px-2 text-sm rounded-lg border border-gray-200 focus:outline-none" />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-gray-400">
+                  Token {agentInfo?.requiresToken === false && <span className="text-gray-300">(agent ไม่ได้ตั้งไว้)</span>}
+                </span>
+                <input type="password" value={settings.token} autoComplete="off"
+                  onChange={(e) => updateSetting({ token: e.target.value })}
+                  className="w-56 h-8 px-2 text-sm rounded-lg border border-gray-200 focus:outline-none" />
+              </label>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-gray-400">ความเข้ม (0-15)</span>
+                <input type="number" min="0" max="15" value={settings.density}
+                  onChange={(e) => updateSetting({ density: Number(e.target.value) })}
+                  className="w-20 h-8 px-2 text-sm rounded-lg border border-gray-200 focus:outline-none text-center" />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-gray-400">ความเร็ว (1-6)</span>
+                <input type="number" min="1" max="6" value={settings.speed}
+                  onChange={(e) => updateSetting({ speed: Number(e.target.value) })}
+                  className="w-20 h-8 px-2 text-sm rounded-lg border border-gray-200 focus:outline-none text-center" />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-gray-400">ระยะห่างฉลาก (mm)</span>
+                <input type="number" min="0" max="10" step="0.5" value={settings.gapMm}
+                  onChange={(e) => updateSetting({ gapMm: Number(e.target.value) })}
+                  className="w-24 h-8 px-2 text-sm rounded-lg border border-gray-200 focus:outline-none text-center" />
+              </label>
+            </div>
+            <div className="text-xs text-gray-400">
+              ค่าพวกนี้เก็บไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น · token ต้องตรงกับที่ตั้งใน <code className="text-gray-500">print-agent/config.json</code>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Label Size */}
+      {/* ขนาด Label */}
       <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex flex-wrap items-center gap-3">
         <span className="text-xs font-medium text-gray-600">📐 ขนาด Label:</span>
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-400">กว้าง</label>
-          <input type="number" value={labelW} onChange={e=>setLabelW(Number(e.target.value))} min="20" max="150"
+          <input type="number" value={labelW} onChange={(e) => setLabelW(Number(e.target.value))} min="20" max="150"
             className="w-14 h-8 px-2 text-sm rounded-lg border border-gray-200 focus:outline-none text-center" />
           <span className="text-xs text-gray-400">mm</span>
         </div>
         <span className="text-gray-300 text-xs">×</span>
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-400">สูง</label>
-          <input type="number" value={labelH} onChange={e=>setLabelH(Number(e.target.value))} min="20" max="150"
+          <input type="number" value={labelH} onChange={(e) => setLabelH(Number(e.target.value))} min="15" max="150"
             className="w-14 h-8 px-2 text-sm rounded-lg border border-gray-200 focus:outline-none text-center" />
           <span className="text-xs text-gray-400">mm</span>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {[[50,40],[60,40],[80,50],[100,70]].map(([w,h]) => (
-            <button key={`${w}x${h}`} onClick={()=>{ setLabelW(w); setLabelH(h) }}
-              className={`text-xs px-2 py-1 rounded-lg border transition-colors ${labelW===w && labelH===h ? 'bg-blue-50 text-blue-600 border-blue-200' : 'border-gray-200 text-gray-400 hover:bg-gray-50'}`}>
+          {SIZE_PRESETS.map(([w, h]) => (
+            <button key={`${w}x${h}`} onClick={() => { setLabelW(w); setLabelH(h) }}
+              className={`text-xs px-2 py-1 rounded-lg border transition-colors ${labelW === w && labelH === h ? 'bg-blue-50 text-blue-600 border-blue-200' : 'border-gray-200 text-gray-400 hover:bg-gray-50'}`}>
               {w}×{h}
             </button>
           ))}
         </div>
       </div>
 
+      {/* Preview */}
+      {selectedItems.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex flex-wrap items-center gap-4">
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-gray-600">👁 ตัวอย่างฉลาก</span>
+            <span className="text-xs text-gray-400">ภาพนี้คือข้อมูลชุดเดียวกับที่ส่งเข้าเครื่องพิมพ์</span>
+          </div>
+          {/* ปล่อยให้ canvas ใช้ขนาด intrinsic (1 px = 1 dot) จะได้เห็นของจริงแบบ 1:1 */}
+          <canvas ref={previewRef}
+            className="border border-gray-200 rounded bg-white"
+            style={{ imageRendering: 'pixelated', maxWidth: '100%', height: 'auto' }} />
+          {previewInfo && (
+            <div className="text-xs text-gray-400 flex flex-col gap-0.5">
+              <span>{previewInfo.widthDots} × {previewInfo.heightDots} dots @ 203 DPI</span>
+              <span>QR {previewInfo.qr.modules}×{previewInfo.qr.modules} module · {previewInfo.qr.scale} dot/module
+                {' '}({(previewInfo.qr.drawnDots / 8).toFixed(1)} mm)</span>
+              <span className="font-mono text-gray-300 truncate max-w-64">{previewInfo.itemId}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ข้อความแจ้งผล */}
+      {msg && (
+        <div className={`rounded-xl border px-4 py-3 text-xs flex items-start justify-between gap-3 ${msgClass}`}>
+          <span className="flex-1">{msg.text}</span>
+          <button onClick={() => setMsg(null)} className="opacity-50 hover:opacity-100">✕</button>
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 flex-1 min-w-40">
           <span className="text-gray-400 text-sm">🔍</span>
-          <input type="text" value={search} onChange={e=>setSearch(e.target.value)}
+          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="ค้นหา Lot, Item ID, ชื่อสินค้า..."
             className="flex-1 text-sm outline-none text-gray-700 placeholder-gray-400 min-w-0" />
-          {search && <button onClick={()=>setSearch('')} className="text-gray-400 text-xs">✕</button>}
+          {search && <button onClick={() => setSearch('')} className="text-gray-400 text-xs">✕</button>}
         </div>
         <div className="flex gap-2 items-center">
           <button onClick={selectAll} className="text-xs text-blue-500 hover:underline">เลือกทั้งหมด</button>
-          <button onClick={clearAll}  className="text-xs text-gray-400 hover:underline">ยกเลิก</button>
+          <button onClick={clearAll} className="text-xs text-gray-400 hover:underline">ยกเลิก</button>
         </div>
       </div>
 
-      {/* List */}
+      {/* รายการ */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {loading ? (
           <div className="text-center py-8 text-gray-400 text-sm">กำลังโหลด...</div>
         ) : Object.entries(groupedByLot).length === 0 ? (
           <div className="text-center py-8 text-gray-400 text-sm">ไม่พบข้อมูล</div>
         ) : Object.entries(groupedByLot).map(([lotId, lot]) => {
-          const allSel    = lot.items.every(i => selected.has(i.id))
-          const someSel   = lot.items.some(i  => selected.has(i.id))
-          const selCount  = lot.items.filter(i => selected.has(i.id)).length
-          const isExpanded= expanded.has(lotId)
-          const allPrinted= lot.items.every(i => i.print_status === 'printed')
+          const allSel     = lot.items.every((i) => selected.has(i.id))
+          const someSel    = lot.items.some((i) => selected.has(i.id))
+          const selCount   = lot.items.filter((i) => selected.has(i.id)).length
+          const isExpanded = expanded.has(lotId)
+          const allPrinted = lot.items.every((i) => i.print_status === 'printed')
 
           return (
             <div key={lotId} className="border-b border-gray-100 last:border-b-0">
               <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
                 <input type="checkbox" checked={allSel}
-                  ref={el => { if(el) el.indeterminate = someSel && !allSel }}
-                  onChange={() => toggleLot(lotId, lot.items)}
+                  ref={(el) => { if (el) el.indeterminate = someSel && !allSel }}
+                  onChange={() => toggleLot(lot.items)}
                   className="accent-blue-500 w-4 h-4 flex-shrink-0" />
                 <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleExpand(lotId)}>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -356,7 +484,7 @@ const connectQZ = async () => {
                   {isExpanded ? '▲' : '▼'}
                 </button>
               </div>
-              {isExpanded && lot.items.map(item => (
+              {isExpanded && lot.items.map((item) => (
                 <div key={item.id} className="flex items-center gap-3 px-4 py-2 pl-10 border-t border-gray-50 bg-gray-50/50">
                   <input type="checkbox" checked={selected.has(item.id)} onChange={() => toggleItem(item.id)}
                     className="accent-blue-500 w-4 h-4 flex-shrink-0" />
@@ -371,23 +499,26 @@ const connectQZ = async () => {
         })}
       </div>
 
-      {/* Summary + ปุ่มปริ้น */}
+      {/* สรุป + ปุ่มพิมพ์ */}
       {selectedItems.length > 0 && (
         <div className="sticky bottom-16 md:bottom-4 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3 shadow-lg flex-wrap">
           <div>
             <div className="text-xs text-blue-500">รวมที่เลือก</div>
             <div className="text-lg font-semibold text-blue-700">{selectedItems.length} แผ่น</div>
-            <div className="text-xs text-blue-400">ขนาด {labelW}×{labelH} mm</div>
+            <div className="text-xs text-blue-400">
+              {progress
+                ? `${progress.phase === 'render' ? 'กำลังเตรียมฉลาก' : progress.phase === 'send' ? 'กำลังส่งเข้าเครื่องพิมพ์' : 'รอ print dialog'} ${progress.done}/${progress.total}`
+                : `ขนาด ${labelW}×${labelH} mm`}
+            </div>
           </div>
           <div className="flex gap-2 flex-wrap">
-            {/* ปริ้นผ่าน QZ Tray */}
-            <button onClick={handlePrintQZ} disabled={printing || qzStatus !== 'connected'}
+            <button onClick={handlePrintAgent}
+              disabled={printing || agentStatus !== 'online' || !settings.printer}
               className="px-4 h-10 text-sm rounded-xl bg-green-500 text-white hover:bg-green-600 disabled:opacity-50 font-medium">
-              {printing ? 'กำลังปริ้น...' : `🖨️ ปริ้นผ่าน XP-420B`}
+              {printing ? 'กำลังพิมพ์...' : '🖨️ พิมพ์ผ่าน Print Agent'}
             </button>
-            {/* ปริ้นแบบ browser fallback */}
             <button onClick={handlePrintBrowser} disabled={printing}
-              className="px-4 h-10 text-sm rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50">
+              className="px-4 h-10 text-sm rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50">
               ปริ้นผ่าน Browser
             </button>
           </div>
@@ -395,7 +526,8 @@ const connectQZ = async () => {
       )}
 
       <div className="text-xs text-gray-400 pb-2">
-        * ปริ้นผ่าน XP-420B ต้องเปิด QZ Tray ไว้ · ปริ้นผ่าน Browser ใช้ได้กับ Printer ทุกรุ่น
+        * Print Agent = พิมพ์ตรงเข้าเครื่องพิมพ์ ไม่มีหน้าต่างเด้ง ต้องเปิดโปรแกรมไว้บนเครื่องที่ต่อเครื่องพิมพ์ ·
+        Browser = ใช้ได้ทุกเครื่องแต่ต้องกดยืนยันใน print dialog
       </div>
     </div>
   )

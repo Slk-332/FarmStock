@@ -28,3 +28,6 @@ Thumbs.db
 .idea/
 *.suo
 *.sw?
+# Print agent — config มี token จึงไม่ commit
+print-agent/config.json
+print-agent/*.log

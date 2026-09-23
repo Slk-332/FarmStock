@@ -1,0 +1,13 @@
+{
+  "host": "127.0.0.1",
+  "port": 9110,
+  "token": "CHANGE-ME-เปลี่ยนเป็นข้อความสุ่มยาว ๆ",
+  "allowedOrigins": [
+    "https://farmstock.vercel.app",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173"
+  ],
+  "defaultPrinter": "Xprinter XP-420B",
+  "maxLabelsPerJob": 500,
+  "checkPrinterStatus": true
+}
