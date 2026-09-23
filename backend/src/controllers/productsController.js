@@ -10,7 +10,8 @@ const UPDATABLE = [
 
 /** คอลัมน์ใหม่ของ Phase 1 ที่ view v_stock_summary ยังไม่รู้จัก จึง join product เอาเอง */
 const PRODUCT_EXTRA_COLS = `
-  p.stock_unit, p.pack_size, p.pack_unit, p.mat_type, p.storage_area, p.is_active,
+  p.stock_unit, p.pack_size, p.pack_unit, p.mat_type, p.storage_area, p.is_active, p.updated_at,
+  ROUND(v.total_stock * v.ave_cost, 2) AS total_value,
   su.name AS stock_unit_name, pu.name AS pack_unit_name`
 
 const PRODUCT_EXTRA_JOIN = `
